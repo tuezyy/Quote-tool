@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import NewQuote from './pages/NewQuote'
 import Quotes from './pages/Quotes'
+import QuoteDetail from './pages/QuoteDetail'
 import Customers from './pages/Customers'
 import Settings from './pages/Settings'
 
@@ -25,6 +26,7 @@ function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="quotes/new" element={<NewQuote />} />
+        <Route path="quotes/:id" element={<QuoteDetail />} />
         <Route path="quotes" element={<Quotes />} />
         <Route path="customers" element={<Customers />} />
         <Route path="settings" element={<Settings />} />

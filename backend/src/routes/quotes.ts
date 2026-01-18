@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../utils/prisma';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
+import { generateQuotePDF } from '../utils/pdfGenerator';
 
 const router = Router();
 
@@ -470,6 +471,137 @@ router.delete('/:quoteId/items/:itemId', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Delete quote item error:', error);
     res.status(500).json({ error: 'Failed to delete quote item' });
+  }
+});
+
+// Generate PDF for quote
+router.get('/:id/pdf', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const quote = await prisma.quote.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        collection: true,
+        style: true,
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    if (!quote) {
+      return res.status(404).json({ error: 'Quote not found' });
+    }
+
+    // Get company info from settings
+    const settings = await prisma.setting.findMany();
+    const companyInfo = {
+      name: settings.find(s => s.key === 'company_name')?.value || 'Cabinet Quoting Company',
+      email: settings.find(s => s.key === 'company_email')?.value || 'info@cabinetquoting.com',
+      phone: settings.find(s => s.key === 'company_phone')?.value || '(555) 123-4567',
+      address: settings.find(s => s.key === 'company_address')?.value
+    };
+
+    // Transform data for PDF generator
+    const pdfData = {
+      quoteNumber: quote.quoteNumber,
+      createdAt: quote.createdAt,
+      customer: {
+        firstName: quote.customer.firstName,
+        lastName: quote.customer.lastName,
+        email: quote.customer.email,
+        phone: quote.customer.phone,
+        address: quote.customer.address || undefined,
+        city: quote.customer.city || undefined,
+        state: quote.customer.state || undefined,
+        zipCode: quote.customer.zipCode || undefined
+      },
+      collection: {
+        name: quote.collection.name
+      },
+      style: {
+        name: quote.style.name
+      },
+      items: quote.items.map(item => ({
+        product: {
+          itemCode: item.product.itemCode,
+          description: item.product.description
+        },
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        total: Number(item.lineTotal)
+      })),
+      subtotal: Number(quote.subtotal),
+      taxRate: Number(quote.taxRate),
+      taxAmount: Number(quote.taxAmount),
+      total: Number(quote.total),
+      notes: quote.notes || undefined,
+      companyInfo
+    };
+
+    const pdfStream = await generateQuotePDF(pdfData);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${quote.quoteNumber}.pdf"`);
+
+    pdfStream.pipe(res);
+  } catch (error) {
+    console.error('Generate PDF error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+// Send quote via email
+router.post('/:id/send', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const quote = await prisma.quote.findUnique({
+      where: { id },
+      include: {
+        customer: true
+      }
+    });
+
+    if (!quote) {
+      return res.status(404).json({ error: 'Quote not found' });
+    }
+
+    // Update quote status to SENT
+    await prisma.quote.update({
+      where: { id },
+      data: {
+        status: 'SENT',
+        sentAt: new Date()
+      }
+    });
+
+    // In a real application, you would send an email here using a service like SendGrid, Mailgun, etc.
+    // For now, we'll just simulate the email being sent
+
+    // Example email implementation (commented out):
+    /*
+    const emailService = require('../services/emailService');
+    await emailService.sendQuote({
+      to: quote.customer.email,
+      quoteNumber: quote.quoteNumber,
+      customerName: `${quote.customer.firstName} ${quote.customer.lastName}`,
+      total: quote.total,
+      pdfAttachment: await generateQuotePDF(quote)
+    });
+    */
+
+    res.json({
+      message: 'Quote sent successfully',
+      email: quote.customer.email
+    });
+  } catch (error) {
+    console.error('Send quote error:', error);
+    res.status(500).json({ error: 'Failed to send quote' });
   }
 });
 
