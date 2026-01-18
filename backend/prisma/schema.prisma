@@ -1,0 +1,162 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name")
+  role         UserRole @default(INSTALLER)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  quotes Quote[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  INSTALLER
+  ADMIN
+}
+
+model Collection {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  styles   Style[]
+  products Product[]
+  quotes   Quote[]
+
+  @@map("collections")
+}
+
+model Style {
+  id           String   @id @default(uuid())
+  collectionId String   @map("collection_id")
+  code         String
+  name         String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  quotes     Quote[]
+
+  @@unique([collectionId, code])
+  @@map("styles")
+}
+
+model Product {
+  id           String   @id @default(uuid())
+  collectionId String   @map("collection_id")
+  itemCode     String   @map("item_code")
+  description  String
+  category     String
+  width        Int?
+  height       Int?
+  depth        Int?
+  doors        String?
+  msrp         Decimal  @db.Decimal(10, 2)
+  price        Decimal  @db.Decimal(10, 2)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  collection Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  quoteItems QuoteItem[]
+
+  @@unique([collectionId, itemCode])
+  @@index([collectionId])
+  @@index([category])
+  @@index([itemCode])
+  @@map("products")
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  city      String?
+  state     String?
+  zip       String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  quotes Quote[]
+
+  @@map("customers")
+}
+
+model Quote {
+  id           String      @id @default(uuid())
+  quoteNumber  String      @unique @map("quote_number")
+  customerId   String      @map("customer_id")
+  userId       String      @map("user_id")
+  collectionId String      @map("collection_id")
+  styleId      String      @map("style_id")
+  subtotal     Decimal     @db.Decimal(10, 2)
+  taxRate      Decimal     @map("tax_rate") @db.Decimal(5, 4)
+  taxAmount    Decimal     @map("tax_amount") @db.Decimal(10, 2)
+  total        Decimal     @db.Decimal(10, 2)
+  status       QuoteStatus @default(DRAFT)
+  notes        String?     @db.Text
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  sentAt       DateTime?   @map("sent_at")
+  expiresAt    DateTime?   @map("expires_at")
+
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Restrict)
+  style      Style      @relation(fields: [styleId], references: [id], onDelete: Restrict)
+  items      QuoteItem[]
+
+  @@index([customerId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("quotes")
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+}
+
+model QuoteItem {
+  id         String   @id @default(uuid())
+  quoteId    String   @map("quote_id")
+  productId  String   @map("product_id")
+  quantity   Int
+  unitPrice  Decimal  @map("unit_price") @db.Decimal(10, 2)
+  lineTotal  Decimal  @map("line_total") @db.Decimal(10, 2)
+  roomName   String?  @map("room_name")
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  quote   Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([quoteId])
+  @@map("quote_items")
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}

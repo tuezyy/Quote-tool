@@ -1,0 +1,476 @@
+import { Router } from 'express';
+import { body, validationResult } from 'express-validator';
+import prisma from '../utils/prisma';
+import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
+
+const router = Router();
+
+// Generate quote number
+const generateQuoteNumber = async (): Promise<string> => {
+  const year = new Date().getFullYear();
+  const count = await prisma.quote.count({
+    where: {
+      quoteNumber: {
+        startsWith: `Q-${year}-`
+      }
+    }
+  });
+  const nextNumber = (count + 1).toString().padStart(4, '0');
+  return `Q-${year}-${nextNumber}`;
+};
+
+// Get all quotes with filters
+router.get('/', authenticate, async (req, res) => {
+  try {
+    const { status, customerId, userId, startDate, endDate, search, page = '1', limit = '50' } = req.query;
+
+    const where: any = {};
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (customerId) {
+      where.customerId = customerId;
+    }
+
+    if (userId) {
+      where.userId = userId;
+    }
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate as string);
+      if (endDate) where.createdAt.lte = new Date(endDate as string);
+    }
+
+    if (search) {
+      where.quoteNumber = { contains: search as string, mode: 'insensitive' };
+    }
+
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [quotes, total] = await Promise.all([
+      prisma.quote.findMany({
+        where,
+        include: {
+          customer: true,
+          user: { select: { id: true, fullName: true, email: true } },
+          collection: true,
+          style: true,
+          _count: { select: { items: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limitNum
+      }),
+      prisma.quote.count({ where })
+    ]);
+
+    res.json({
+      quotes,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum)
+      }
+    });
+  } catch (error) {
+    console.error('Get quotes error:', error);
+    res.status(500).json({ error: 'Failed to fetch quotes' });
+  }
+});
+
+// Get single quote
+router.get('/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const quote = await prisma.quote.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        user: { select: { id: true, fullName: true, email: true } },
+        collection: true,
+        style: true,
+        items: {
+          include: {
+            product: true
+          },
+          orderBy: { createdAt: 'asc' }
+        }
+      }
+    });
+
+    if (!quote) {
+      return res.status(404).json({ error: 'Quote not found' });
+    }
+
+    res.json(quote);
+  } catch (error) {
+    console.error('Get quote error:', error);
+    res.status(500).json({ error: 'Failed to fetch quote' });
+  }
+});
+
+// Create quote
+router.post('/', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const {
+      customerId,
+      collectionId,
+      styleId,
+      items,
+      taxRate,
+      notes
+    } = req.body;
+
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Calculate totals
+    let subtotal = 0;
+    for (const item of items) {
+      const lineTotal = parseFloat(item.unitPrice) * item.quantity;
+      subtotal += lineTotal;
+    }
+
+    const taxAmount = subtotal * parseFloat(taxRate);
+    const total = subtotal + taxAmount;
+
+    // Generate quote number
+    const quoteNumber = await generateQuoteNumber();
+
+    // Set expiration date (30 days from now)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    // Create quote
+    const quote = await prisma.quote.create({
+      data: {
+        quoteNumber,
+        customerId,
+        userId: req.user.userId,
+        collectionId,
+        styleId,
+        subtotal,
+        taxRate: parseFloat(taxRate),
+        taxAmount,
+        total,
+        notes,
+        expiresAt,
+        status: 'DRAFT',
+        items: {
+          create: items.map((item: any) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: parseFloat(item.unitPrice),
+            lineTotal: parseFloat(item.unitPrice) * item.quantity,
+            roomName: item.roomName,
+            notes: item.notes
+          }))
+        }
+      },
+      include: {
+        customer: true,
+        collection: true,
+        style: true,
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    res.status(201).json(quote);
+  } catch (error) {
+    console.error('Create quote error:', error);
+    res.status(500).json({ error: 'Failed to create quote' });
+  }
+});
+
+// Update quote
+router.put('/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { items, taxRate, notes, ...quoteData } = req.body;
+
+    // If items are being updated, recalculate totals
+    if (items) {
+      let subtotal = 0;
+      for (const item of items) {
+        const lineTotal = parseFloat(item.unitPrice) * item.quantity;
+        subtotal += lineTotal;
+      }
+
+      const rate = taxRate ? parseFloat(taxRate) : 0;
+      const taxAmount = subtotal * rate;
+      const total = subtotal + taxAmount;
+
+      quoteData.subtotal = subtotal;
+      quoteData.taxRate = rate;
+      quoteData.taxAmount = taxAmount;
+      quoteData.total = total;
+    }
+
+    if (notes !== undefined) {
+      quoteData.notes = notes;
+    }
+
+    const quote = await prisma.quote.update({
+      where: { id },
+      data: quoteData,
+      include: {
+        customer: true,
+        collection: true,
+        style: true,
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    res.json(quote);
+  } catch (error) {
+    console.error('Update quote error:', error);
+    res.status(500).json({ error: 'Failed to update quote' });
+  }
+});
+
+// Update quote status
+router.patch('/:id/status', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const updateData: any = { status };
+
+    if (status === 'SENT') {
+      updateData.sentAt = new Date();
+    }
+
+    const quote = await prisma.quote.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json(quote);
+  } catch (error) {
+    console.error('Update quote status error:', error);
+    res.status(500).json({ error: 'Failed to update quote status' });
+  }
+});
+
+// Duplicate quote
+router.post('/:id/duplicate', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Get original quote
+    const original = await prisma.quote.findUnique({
+      where: { id },
+      include: {
+        items: true
+      }
+    });
+
+    if (!original) {
+      return res.status(404).json({ error: 'Quote not found' });
+    }
+
+    // Generate new quote number
+    const quoteNumber = await generateQuoteNumber();
+
+    // Create duplicate
+    const duplicate = await prisma.quote.create({
+      data: {
+        quoteNumber,
+        customerId: original.customerId,
+        userId: req.user.userId,
+        collectionId: original.collectionId,
+        styleId: original.styleId,
+        subtotal: original.subtotal,
+        taxRate: original.taxRate,
+        taxAmount: original.taxAmount,
+        total: original.total,
+        notes: original.notes,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: 'DRAFT',
+        items: {
+          create: original.items.map(item => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            lineTotal: item.lineTotal,
+            roomName: item.roomName,
+            notes: item.notes
+          }))
+        }
+      },
+      include: {
+        customer: true,
+        collection: true,
+        style: true,
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    res.status(201).json(duplicate);
+  } catch (error) {
+    console.error('Duplicate quote error:', error);
+    res.status(500).json({ error: 'Failed to duplicate quote' });
+  }
+});
+
+// Delete quote (admin only)
+router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.quote.delete({ where: { id } });
+
+    res.json({ message: 'Quote deleted successfully' });
+  } catch (error) {
+    console.error('Delete quote error:', error);
+    res.status(500).json({ error: 'Failed to delete quote' });
+  }
+});
+
+// Quote items routes
+router.post('/:quoteId/items', authenticate, async (req, res) => {
+  try {
+    const { quoteId } = req.params;
+    const { productId, quantity, unitPrice, roomName, notes } = req.body;
+
+    const lineTotal = parseFloat(unitPrice) * quantity;
+
+    const item = await prisma.quoteItem.create({
+      data: {
+        quoteId,
+        productId,
+        quantity,
+        unitPrice: parseFloat(unitPrice),
+        lineTotal,
+        roomName,
+        notes
+      },
+      include: {
+        product: true
+      }
+    });
+
+    // Recalculate quote totals
+    const quote = await prisma.quote.findUnique({
+      where: { id: quoteId },
+      include: { items: true }
+    });
+
+    if (quote) {
+      const subtotal = quote.items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
+      const taxAmount = subtotal * Number(quote.taxRate);
+      const total = subtotal + taxAmount;
+
+      await prisma.quote.update({
+        where: { id: quoteId },
+        data: { subtotal, taxAmount, total }
+      });
+    }
+
+    res.status(201).json(item);
+  } catch (error) {
+    console.error('Add quote item error:', error);
+    res.status(500).json({ error: 'Failed to add quote item' });
+  }
+});
+
+router.put('/:quoteId/items/:itemId', authenticate, async (req, res) => {
+  try {
+    const { itemId, quoteId } = req.params;
+    const { quantity, unitPrice, roomName, notes } = req.body;
+
+    const lineTotal = parseFloat(unitPrice) * quantity;
+
+    const item = await prisma.quoteItem.update({
+      where: { id: itemId },
+      data: {
+        quantity,
+        unitPrice: parseFloat(unitPrice),
+        lineTotal,
+        roomName,
+        notes
+      },
+      include: {
+        product: true
+      }
+    });
+
+    // Recalculate quote totals
+    const quote = await prisma.quote.findUnique({
+      where: { id: quoteId },
+      include: { items: true }
+    });
+
+    if (quote) {
+      const subtotal = quote.items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
+      const taxAmount = subtotal * Number(quote.taxRate);
+      const total = subtotal + taxAmount;
+
+      await prisma.quote.update({
+        where: { id: quoteId },
+        data: { subtotal, taxAmount, total }
+      });
+    }
+
+    res.json(item);
+  } catch (error) {
+    console.error('Update quote item error:', error);
+    res.status(500).json({ error: 'Failed to update quote item' });
+  }
+});
+
+router.delete('/:quoteId/items/:itemId', authenticate, async (req, res) => {
+  try {
+    const { itemId, quoteId } = req.params;
+
+    await prisma.quoteItem.delete({ where: { id: itemId } });
+
+    // Recalculate quote totals
+    const quote = await prisma.quote.findUnique({
+      where: { id: quoteId },
+      include: { items: true }
+    });
+
+    if (quote) {
+      const subtotal = quote.items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
+      const taxAmount = subtotal * Number(quote.taxRate);
+      const total = subtotal + taxAmount;
+
+      await prisma.quote.update({
+        where: { id: quoteId },
+        data: { subtotal, taxAmount, total }
+      });
+    }
+
+    res.json({ message: 'Quote item deleted successfully' });
+  } catch (error) {
+    console.error('Delete quote item error:', error);
+    res.status(500).json({ error: 'Failed to delete quote item' });
+  }
+});
+
+export default router;
