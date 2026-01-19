@@ -20,7 +20,7 @@ export default function QuoteDetail() {
   const fetchQuote = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`/api/quotes/${id}`);
+      const response = await axios.get(`/quotes/${id}`);
       setQuote(response.data);
       setError('');
     } catch (err: any) {
@@ -35,7 +35,7 @@ export default function QuoteDetail() {
 
     setUpdating(true);
     try {
-      const response = await axios.put(`/api/quotes/${quote.id}`, { status: newStatus });
+      const response = await axios.put(`/quotes/${quote.id}`, { status: newStatus });
       setQuote(response.data);
       setError('');
     } catch (err: any) {
@@ -49,7 +49,7 @@ export default function QuoteDetail() {
     if (!quote) return;
 
     try {
-      const response = await axios.get(`/api/quotes/${quote.id}/pdf`, {
+      const response = await axios.get(`/quotes/${quote.id}/pdf`, {
         responseType: 'blob'
       });
 
@@ -69,7 +69,7 @@ export default function QuoteDetail() {
     if (!quote) return;
 
     try {
-      await axios.post(`/api/quotes/${quote.id}/send`);
+      await axios.post(`/quotes/${quote.id}/send`);
       alert('Quote sent successfully!');
       fetchQuote(); // Refresh to update status
     } catch (err: any) {
@@ -81,7 +81,7 @@ export default function QuoteDetail() {
     if (!quote || !confirm('Are you sure you want to delete this quote?')) return;
 
     try {
-      await axios.delete(`/api/quotes/${quote.id}`);
+      await axios.delete(`/quotes/${quote.id}`);
       navigate('/quotes');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to delete quote');
@@ -92,7 +92,7 @@ export default function QuoteDetail() {
     if (!quote) return;
 
     try {
-      const response = await axios.post(`/api/quotes/${quote.id}/duplicate`);
+      const response = await axios.post(`/quotes/${quote.id}/duplicate`);
       navigate(`/quotes/${response.data.id}`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to duplicate quote');

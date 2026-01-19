@@ -29,7 +29,7 @@ export default function Settings() {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/settings');
+      const response = await axios.get('/settings');
       const settingsMap: Record<string, string> = {};
       response.data.forEach((setting: Setting) => {
         settingsMap[setting.key] = setting.value;
@@ -65,7 +65,7 @@ export default function Settings() {
     try {
       // Update each setting
       const updates = Object.entries(settings).map(([key, value]) =>
-        axios.put(`/api/settings/${key}`, { value })
+        axios.put(`/settings/${key}`, { value })
       );
 
       await Promise.all(updates);

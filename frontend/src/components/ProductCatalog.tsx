@@ -44,7 +44,7 @@ export default function ProductCatalog({ onAddProduct, selectedCollectionId, sel
 
   const fetchCollections = async () => {
     try {
-      const response = await axios.get('/api/collections');
+      const response = await axios.get('/collections');
       setCollections(response.data);
     } catch (err: any) {
       setError('Failed to load collections');
@@ -59,7 +59,7 @@ export default function ProductCatalog({ onAddProduct, selectedCollectionId, sel
       if (categoryFilter) params.category = categoryFilter;
       if (searchTerm) params.search = searchTerm;
 
-      const response = await axios.get('/api/products', { params });
+      const response = await axios.get('/products', { params });
       setProducts(response.data.products);
       setTotalPages(response.data.pagination.totalPages);
       setError('');

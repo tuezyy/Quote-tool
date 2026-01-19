@@ -8,13 +8,8 @@ const router = Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const settings = await prisma.setting.findMany();
-
-    const settingsObj: Record<string, string> = {};
-    settings.forEach(setting => {
-      settingsObj[setting.key] = setting.value;
-    });
-
-    res.json(settingsObj);
+    // Return as array for frontend compatibility
+    res.json(settings);
   } catch (error) {
     console.error('Get settings error:', error);
     res.status(500).json({ error: 'Failed to fetch settings' });

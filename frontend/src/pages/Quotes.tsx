@@ -18,7 +18,7 @@ export default function Quotes() {
   const fetchQuotes = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/quotes');
+      const response = await axios.get('/quotes');
       setQuotes(response.data);
       setError('');
     } catch (err: any) {
@@ -34,7 +34,7 @@ export default function Quotes() {
     }
 
     try {
-      await axios.delete(`/api/quotes/${quoteId}`);
+      await axios.delete(`/quotes/${quoteId}`);
       setQuotes(quotes.filter(q => q.id !== quoteId));
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to delete quote');
@@ -43,7 +43,7 @@ export default function Quotes() {
 
   const handleDuplicateQuote = async (quoteId: string) => {
     try {
-      const response = await axios.post(`/api/quotes/${quoteId}/duplicate`);
+      const response = await axios.post(`/quotes/${quoteId}/duplicate`);
       navigate(`/quotes/${response.data.id}`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to duplicate quote');

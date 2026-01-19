@@ -3,55 +3,6 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const productData = {
-  "metadata": {
-    "total_products": 1044,
-    "collections_count": 5,
-    "export_date": "2026-01-18"
-  },
-  "collections": [
-    {
-      "name": "Essential & Charm",
-      "styles": [
-        "SA-Shaker Smokey Ash",
-        "AG-Shaker Aston Green",
-        "SE-Shaker Expresso",
-        "NB-Shaker Navy Blue",
-        "IB-Shaker Iron Black"
-      ],
-      "product_count": 261,
-      "products": ${JSON.stringify([
-        {
-          "item_code": "W1212GD",
-          "description": "Wall Cabinet - 12\"W x 12\"H x 12\"D - 1D",
-          "category": "WALL CABINETS - 12\"H",
-          "msrp": 103.0,
-          "your_price": 41.2
-        }
-      ])} // Abbreviated for demo - full data will be added
-    }
-  ]
-};
-
-// Helper function to parse dimensions from description
-function parseDimensions(description: string) {
-  const match = description.match(/(\d+)"W x (\d+)"H x (\d+)"D/);
-  if (match) {
-    return {
-      width: parseInt(match[1]),
-      height: parseInt(match[2]),
-      depth: parseInt(match[3])
-    };
-  }
-  return { width: null, height: null, depth: null };
-}
-
-// Helper function to parse doors from description
-function parseDoors(description: string) {
-  const match = description.match(/(\d+D)/);
-  return match ? match[1] : null;
-}
-
 async function main() {
   console.log('🌱 Starting database seed...');
 
@@ -103,7 +54,7 @@ async function main() {
     update: {},
     create: {
       key: 'company_name',
-      value: 'Cabinet Routing & Installation Co.'
+      value: 'Cabinet Quoting & Installation Co.'
     }
   });
 
@@ -125,15 +76,16 @@ async function main() {
     }
   });
 
+  await prisma.setting.upsert({
+    where: { key: 'company_address' },
+    update: {},
+    create: {
+      key: 'company_address',
+      value: ''
+    }
+  });
+
   console.log('✅ Default settings created');
-
-  console.log('\n📦 Importing collections and products...');
-
-  // Note: You'll need to provide the full product JSON data here
-  // For now, this is a skeleton that shows the structure
-
-  console.log('⚠️  Product data import not yet implemented');
-  console.log('   Please run the import script separately with full product data');
 
   console.log('\n✨ Seed completed successfully!');
   console.log('\nDefault credentials:');

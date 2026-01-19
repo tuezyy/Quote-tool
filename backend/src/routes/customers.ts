@@ -14,7 +14,8 @@ router.get('/', authenticate, async (req, res) => {
 
     if (search) {
       where.OR = [
-        { name: { contains: search as string, mode: 'insensitive' } },
+        { firstName: { contains: search as string, mode: 'insensitive' } },
+        { lastName: { contains: search as string, mode: 'insensitive' } },
         { email: { contains: search as string, mode: 'insensitive' } },
         { phone: { contains: search as string, mode: 'insensitive' } }
       ];
@@ -27,22 +28,14 @@ router.get('/', authenticate, async (req, res) => {
     const [customers, total] = await Promise.all([
       prisma.customer.findMany({
         where,
-        orderBy: { name: 'asc' },
+        orderBy: { lastName: 'asc' },
         skip,
         take: limitNum
       }),
       prisma.customer.count({ where })
     ]);
 
-    res.json({
-      customers,
-      pagination: {
-        total,
-        page: pageNum,
-        limit: limitNum,
-        totalPages: Math.ceil(total / limitNum)
-      }
-    });
+    res.json(customers);
   } catch (error) {
     console.error('Get customers error:', error);
     res.status(500).json({ error: 'Failed to fetch customers' });
@@ -80,13 +73,14 @@ router.post(
   '/',
   authenticate,
   [
-    body('name').trim().notEmpty(),
-    body('email').optional().isEmail().normalizeEmail(),
-    body('phone').optional().trim(),
+    body('firstName').trim().notEmpty().withMessage('First name is required'),
+    body('lastName').trim().notEmpty().withMessage('Last name is required'),
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('phone').trim().notEmpty().withMessage('Phone is required'),
     body('address').optional().trim(),
     body('city').optional().trim(),
     body('state').optional().trim(),
-    body('zip').optional().trim()
+    body('zipCode').optional().trim()
   ],
   async (req, res) => {
     try {
@@ -95,10 +89,19 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const customerData = req.body;
+      const { firstName, lastName, email, phone, address, city, state, zipCode } = req.body;
 
       const customer = await prisma.customer.create({
-        data: customerData
+        data: {
+          firstName,
+          lastName,
+          email,
+          phone,
+          address,
+          city,
+          state,
+          zipCode
+        }
       });
 
       res.status(201).json(customer);
@@ -113,11 +116,20 @@ router.post(
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    const customerData = req.body;
+    const { firstName, lastName, email, phone, address, city, state, zipCode } = req.body;
 
     const customer = await prisma.customer.update({
       where: { id },
-      data: customerData
+      data: {
+        firstName,
+        lastName,
+        email,
+        phone,
+        address,
+        city,
+        state,
+        zipCode
+      }
     });
 
     res.json(customer);

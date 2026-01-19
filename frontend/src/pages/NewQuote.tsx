@@ -52,7 +52,7 @@ export default function NewQuote() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await axios.get('/api/customers');
+      const response = await axios.get('/customers');
       setCustomers(response.data);
     } catch (err) {
       console.error('Failed to fetch customers:', err);
@@ -61,7 +61,7 @@ export default function NewQuote() {
 
   const fetchCollections = async () => {
     try {
-      const response = await axios.get('/api/collections');
+      const response = await axios.get('/collections');
       setCollections(response.data);
     } catch (err) {
       console.error('Failed to fetch collections:', err);
@@ -70,7 +70,7 @@ export default function NewQuote() {
 
   const fetchSettings = async () => {
     try {
-      const response = await axios.get('/api/settings');
+      const response = await axios.get('/settings');
       const taxRateSetting = response.data.find((s: any) => s.key === 'tax_rate');
       if (taxRateSetting) {
         setTaxRate(parseFloat(taxRateSetting.value));
@@ -83,7 +83,7 @@ export default function NewQuote() {
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post('/api/customers', newCustomer);
+      const response = await axios.post('/customers', newCustomer);
       setSelectedCustomer(response.data);
       setCustomers([...customers, response.data]);
       setShowNewCustomerForm(false);
@@ -176,7 +176,7 @@ export default function NewQuote() {
         notes
       };
 
-      const response = await axios.post('/api/quotes', quoteData);
+      const response = await axios.post('/quotes', quoteData);
       navigate(`/quotes/${response.data.id}`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to create quote');

@@ -81,13 +81,14 @@ model Product {
 
 model Customer {
   id        String   @id @default(uuid())
-  name      String
-  email     String?
-  phone     String?
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  email     String
+  phone     String
   address   String?
   city      String?
   state     String?
-  zip       String?
+  zipCode   String?  @map("zip_code")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
