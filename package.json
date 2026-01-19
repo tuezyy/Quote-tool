@@ -5,20 +5,14 @@
   "description": "Cabinet quoting tool for installers",
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
-    "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "build:frontend": "npm install --prefix frontend && npm run build --prefix frontend",
+    "build:backend": "npm install --prefix backend && npm run build --prefix backend",
+    "db:generate": "npx prisma generate --schema=backend/prisma/schema.prisma",
     "build": "npm run build:frontend && npm run build:backend && npm run db:generate",
-    "build:frontend": "cd frontend && npm install && npm run build",
-    "build:backend": "cd backend && npm install && npm run build",
-    "db:generate": "cd backend && npx prisma generate",
-    "db:migrate": "cd backend && npx prisma migrate deploy",
-    "start": "cd backend && npm start",
-    "postinstall": "npm run build:frontend && npm run build:backend",
-    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
+    "start": "cd backend && npm start"
   },
-  "keywords": ["cabinet", "quoting", "react", "express"],
-  "author": "",
-  "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
