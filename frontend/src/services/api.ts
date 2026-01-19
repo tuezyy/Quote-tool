@@ -1,8 +1,12 @@
 import axios from 'axios'
 import { useAuthStore } from '../stores/authStore'
 
+// In production, use the VITE_API_URL environment variable
+// In development, use '/api' which gets proxied by Vite
+const baseURL = import.meta.env.VITE_API_URL || '/api'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },

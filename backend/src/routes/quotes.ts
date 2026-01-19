@@ -125,7 +125,15 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       collectionId,
       styleId,
       items,
+      msrpTotal = 0,
+      cabinetCost = 0,
+      laborCost = 0,
+      otherCosts = 0,
+      subtotal: providedSubtotal,
       taxRate,
+      taxAmount: providedTaxAmount,
+      total: providedTotal,
+      profit = 0,
       notes
     } = req.body;
 
@@ -133,15 +141,20 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Calculate totals
-    let subtotal = 0;
-    for (const item of items) {
-      const lineTotal = parseFloat(item.unitPrice) * item.quantity;
-      subtotal += lineTotal;
+    // Calculate cabinet cost from items if not provided
+    let calculatedCabinetCost = cabinetCost;
+    if (!cabinetCost) {
+      for (const item of items) {
+        const lineTotal = parseFloat(item.unitPrice) * item.quantity;
+        calculatedCabinetCost += lineTotal;
+      }
     }
 
-    const taxAmount = subtotal * parseFloat(taxRate);
-    const total = subtotal + taxAmount;
+    // Calculate subtotal (cabinet cost + labor + other costs)
+    const subtotal = providedSubtotal || (calculatedCabinetCost + parseFloat(laborCost || 0) + parseFloat(otherCosts || 0));
+    const taxAmount = providedTaxAmount || (subtotal * parseFloat(taxRate));
+    const total = providedTotal || (subtotal + taxAmount);
+    const calculatedProfit = profit || (total - calculatedCabinetCost);
 
     // Generate quote number
     const quoteNumber = await generateQuoteNumber();
@@ -158,10 +171,15 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         userId: req.user.userId,
         collectionId,
         styleId,
+        msrpTotal: parseFloat(msrpTotal || 0),
+        cabinetCost: calculatedCabinetCost,
+        laborCost: parseFloat(laborCost || 0),
+        otherCosts: parseFloat(otherCosts || 0),
         subtotal,
         taxRate: parseFloat(taxRate),
         taxAmount,
         total,
+        profit: calculatedProfit,
         notes,
         expiresAt,
         status: 'DRAFT',
@@ -301,10 +319,15 @@ router.post('/:id/duplicate', authenticate, async (req: AuthRequest, res) => {
         userId: req.user.userId,
         collectionId: original.collectionId,
         styleId: original.styleId,
+        msrpTotal: original.msrpTotal,
+        cabinetCost: original.cabinetCost,
+        laborCost: original.laborCost,
+        otherCosts: original.otherCosts,
         subtotal: original.subtotal,
         taxRate: original.taxRate,
         taxAmount: original.taxAmount,
         total: original.total,
+        profit: original.profit,
         notes: original.notes,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         status: 'DRAFT',
@@ -529,12 +552,14 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
       items: quote.items.map(item => ({
         product: {
           itemCode: item.product.itemCode,
-          description: item.product.description
+          description: item.product.description,
+          msrp: Number(item.product.msrp)
         },
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
         total: Number(item.lineTotal)
       })),
+      msrpTotal: Number(quote.msrpTotal),
       subtotal: Number(quote.subtotal),
       taxRate: Number(quote.taxRate),
       taxAmount: Number(quote.taxAmount),

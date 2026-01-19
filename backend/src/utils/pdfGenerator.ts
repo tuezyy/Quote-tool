@@ -24,11 +24,13 @@ interface QuoteData {
     product: {
       itemCode: string;
       description: string;
+      msrp?: number;
     };
     quantity: number;
     unitPrice: number;
     total: number;
   }>;
+  msrpTotal: number;
   subtotal: number;
   taxRate: number;
   taxAmount: number;
@@ -61,6 +63,10 @@ export async function generateQuotePDF(quote: QuoteData): Promise<Readable> {
       day: 'numeric'
     });
   };
+
+  // Calculate savings
+  const savings = quote.msrpTotal - quote.total;
+  const savingsPercent = quote.msrpTotal > 0 ? (savings / quote.msrpTotal) * 100 : 0;
 
   // Header
   doc.fontSize(24).font('Helvetica-Bold').text('QUOTE', { align: 'center' });
@@ -109,16 +115,16 @@ export async function generateQuotePDF(quote: QuoteData): Promise<Readable> {
 
   doc.moveDown(2);
 
-  // Items Table
+  // Items Table - Show item codes and descriptions only (no individual prices)
   const tableTop = doc.y;
-  const tableHeaders = ['Item Code', 'Description', 'Qty', 'Unit Price', 'Total'];
-  const columnWidths = [80, 220, 40, 80, 80];
-  const columnPositions = [50, 130, 350, 390, 470];
+  const tableHeaders = ['Item Code', 'Description', 'Qty'];
+  const columnWidths = [100, 350, 50];
+  const columnPositions = [50, 150, 500];
 
   // Table Header
   doc.fontSize(10).font('Helvetica-Bold');
   tableHeaders.forEach((header, i) => {
-    const align = i >= 2 ? 'right' : 'left';
+    const align = i === 2 ? 'right' : 'left';
     doc.text(header, columnPositions[i], tableTop, {
       width: columnWidths[i],
       align: align
@@ -131,7 +137,7 @@ export async function generateQuotePDF(quote: QuoteData): Promise<Readable> {
   let itemY = tableTop + 25;
   doc.font('Helvetica').fontSize(9);
 
-  // Table Rows
+  // Table Rows - Only show item code, description, and quantity
   quote.items.forEach((item, index) => {
     // Check if we need a new page
     if (itemY > 700) {
@@ -139,20 +145,17 @@ export async function generateQuotePDF(quote: QuoteData): Promise<Readable> {
       itemY = 50;
     }
 
-    const row = [
-      item.product.itemCode,
-      item.product.description,
-      item.quantity.toString(),
-      formatCurrency(item.unitPrice),
-      formatCurrency(item.total)
-    ];
-
-    row.forEach((text, i) => {
-      const align = i >= 2 ? 'right' : 'left';
-      doc.text(text, columnPositions[i], itemY, {
-        width: columnWidths[i],
-        align: align
-      });
+    doc.text(item.product.itemCode, columnPositions[0], itemY, {
+      width: columnWidths[0],
+      align: 'left'
+    });
+    doc.text(item.product.description, columnPositions[1], itemY, {
+      width: columnWidths[1],
+      align: 'left'
+    });
+    doc.text(item.quantity.toString(), columnPositions[2], itemY, {
+      width: columnWidths[2],
+      align: 'right'
     });
 
     itemY += 20;
@@ -164,34 +167,54 @@ export async function generateQuotePDF(quote: QuoteData): Promise<Readable> {
     }
   });
 
-  // Draw line before totals
+  // Draw line before pricing
   itemY += 10;
   doc.moveTo(50, itemY).lineTo(550, itemY).stroke();
-  itemY += 15;
-
-  // Totals
-  const totalsX = 390;
-  doc.fontSize(10).font('Helvetica');
-
-  doc.text('Subtotal:', totalsX, itemY);
-  doc.text(formatCurrency(quote.subtotal), 470, itemY, { width: 80, align: 'right' });
   itemY += 20;
 
-  doc.text(`Tax (${(quote.taxRate * 100).toFixed(2)}%):`, totalsX, itemY);
-  doc.text(formatCurrency(quote.taxAmount), 470, itemY, { width: 80, align: 'right' });
-  itemY += 20;
+  // Pricing Section - Customer-friendly display
+  const pricingX = 320;
+  const valueX = 450;
 
-  // Draw line before total
-  doc.strokeColor('#000000').moveTo(390, itemY).lineTo(550, itemY).stroke();
+  // Retail Value (MSRP) - shown with strikethrough effect
+  doc.fontSize(10).font('Helvetica').fillColor('#666666');
+  doc.text('Retail Value:', pricingX, itemY);
+  doc.text(formatCurrency(quote.msrpTotal), valueX, itemY, { width: 100, align: 'right' });
+  // Draw strikethrough line
+  const msrpTextWidth = doc.widthOfString(formatCurrency(quote.msrpTotal));
+  doc.moveTo(550 - msrpTextWidth, itemY + 5).lineTo(550, itemY + 5).stroke();
+  itemY += 25;
+
+  // Tax
+  doc.fillColor('#000000');
+  doc.text(`Tax (${(quote.taxRate * 100).toFixed(2)}%):`, pricingX, itemY);
+  doc.text(formatCurrency(quote.taxAmount), valueX, itemY, { width: 100, align: 'right' });
+  itemY += 25;
+
+  // Draw line before Your Price
+  doc.strokeColor('#000000').moveTo(pricingX, itemY).lineTo(550, itemY).stroke();
   itemY += 15;
 
-  doc.fontSize(12).font('Helvetica-Bold');
-  doc.text('Total:', totalsX, itemY);
-  doc.text(formatCurrency(quote.total), 470, itemY, { width: 80, align: 'right' });
+  // Your Price (Total)
+  doc.fontSize(14).font('Helvetica-Bold');
+  doc.text('Your Price:', pricingX, itemY);
+  doc.text(formatCurrency(quote.total), valueX, itemY, { width: 100, align: 'right' });
+  itemY += 30;
+
+  // You Save - Highlight box
+  if (savings > 0) {
+    // Draw green highlight box
+    doc.rect(pricingX - 10, itemY - 5, 240, 30).fill('#E8F5E9').stroke();
+    doc.fillColor('#2E7D32').fontSize(12).font('Helvetica-Bold');
+    doc.text('You Save:', pricingX, itemY + 3);
+    doc.text(`${formatCurrency(savings)} (${savingsPercent.toFixed(0)}% off!)`, valueX - 30, itemY + 3, { width: 130, align: 'right' });
+    doc.fillColor('#000000');
+    itemY += 40;
+  }
 
   // Notes
   if (quote.notes) {
-    itemY += 40;
+    itemY += 20;
     if (itemY > 650) {
       doc.addPage();
       itemY = 50;

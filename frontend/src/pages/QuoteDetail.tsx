@@ -294,7 +294,7 @@ export default function QuoteDetail() {
                     {formatPrice(Number(item.unitPrice))}
                   </td>
                   <td className="px-6 py-4 text-right font-semibold">
-                    {formatPrice(Number(item.total))}
+                    {formatPrice(Number(item.lineTotal))}
                   </td>
                 </tr>
               ))}
@@ -303,20 +303,77 @@ export default function QuoteDetail() {
         </div>
       </div>
 
-      {/* Totals */}
-      <div className="card max-w-md ml-auto">
-        <div className="space-y-3">
-          <div className="flex justify-between text-lg">
-            <span>Subtotal:</span>
-            <span className="font-semibold">{formatPrice(Number(quote.subtotal))}</span>
+      {/* Two Column: Customer View & Your Profit */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Customer View - What they see on PDF */}
+        <div className="card border-2 border-blue-300 bg-blue-50">
+          <div className="flex items-center gap-2 mb-4">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <h2 className="text-lg font-semibold text-blue-800">Customer Sees (PDF)</h2>
           </div>
-          <div className="flex justify-between text-lg">
-            <span>Tax ({(Number(quote.taxRate) * 100).toFixed(2)}%):</span>
-            <span className="font-semibold">{formatPrice(Number(quote.taxAmount))}</span>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Retail Value (MSRP):</span>
+              <span className="font-semibold line-through text-gray-500">{formatPrice(Number(quote.msrpTotal))}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Tax ({(Number(quote.taxRate) * 100).toFixed(2)}%):</span>
+              <span className="font-semibold">{formatPrice(Number(quote.taxAmount))}</span>
+            </div>
+            <div className="flex justify-between text-xl font-bold pt-3 border-t border-blue-300">
+              <span>Your Price:</span>
+              <span className="text-blue-700">{formatPrice(Number(quote.total))}</span>
+            </div>
+            {Number(quote.msrpTotal) > Number(quote.total) && (
+              <div className="flex justify-between text-green-700 bg-green-100 p-2 rounded">
+                <span className="font-semibold">You Save:</span>
+                <span className="font-bold">
+                  {formatPrice(Number(quote.msrpTotal) - Number(quote.total))}
+                  ({((Number(quote.msrpTotal) - Number(quote.total)) / Number(quote.msrpTotal) * 100).toFixed(0)}% off!)
+                </span>
+              </div>
+            )}
           </div>
-          <div className="flex justify-between text-2xl font-bold pt-3 border-t border-gray-300">
-            <span>Total:</span>
-            <span className="text-green-600">{formatPrice(Number(quote.total))}</span>
+        </div>
+
+        {/* Your Profit - Internal only */}
+        <div className="card border-2 border-green-300 bg-green-50">
+          <div className="flex items-center gap-2 mb-4">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <h2 className="text-lg font-semibold text-green-800">Your Profit (Private)</h2>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Your Cabinet Cost:</span>
+              <span className="font-semibold">{formatPrice(Number(quote.cabinetCost))}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">+ Labor:</span>
+              <span className="font-semibold">{formatPrice(Number(quote.laborCost))}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">+ Other:</span>
+              <span className="font-semibold">{formatPrice(Number(quote.otherCosts))}</span>
+            </div>
+            <div className="flex justify-between text-sm pt-2 border-t border-green-200">
+              <span className="text-gray-600">Customer Pays:</span>
+              <span className="font-semibold">{formatPrice(Number(quote.total))}</span>
+            </div>
+            <div className="flex justify-between text-xl font-bold pt-3 border-t border-green-300">
+              <span>Your Profit:</span>
+              <span className="text-green-600">{formatPrice(Number(quote.profit))}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Profit Margin:</span>
+              <span className="font-semibold text-green-600">
+                {quote.total > 0 ? ((Number(quote.profit) / Number(quote.total)) * 100).toFixed(1) : 0}%
+              </span>
+            </div>
           </div>
         </div>
       </div>

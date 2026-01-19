@@ -8,7 +8,7 @@ const router = Router();
 // Get all products with filters
 router.get('/', async (req, res) => {
   try {
-    const { collectionId, category, search, page = '1', limit = '50' } = req.query;
+    const { collectionId, category, categoryGroup, search, page = '1', limit = '50' } = req.query;
 
     const where: any = {};
 
@@ -16,15 +16,73 @@ router.get('/', async (req, res) => {
       where.collectionId = collectionId;
     }
 
+    // Exact category match
     if (category) {
       where.category = category;
     }
 
+    // Category group pattern matching
+    if (categoryGroup) {
+      const group = categoryGroup as string;
+      switch (group) {
+        case 'wall':
+          where.category = { contains: 'WALL', mode: 'insensitive' };
+          break;
+        case 'base':
+          where.AND = [
+            { category: { contains: 'BASE', mode: 'insensitive' } },
+            { category: { not: { contains: 'VANITY', mode: 'insensitive' } } }
+          ];
+          break;
+        case 'vanity':
+          where.category = { contains: 'VANITY', mode: 'insensitive' };
+          break;
+        case 'utility':
+          where.OR = [
+            { category: { contains: 'UTILITY', mode: 'insensitive' } },
+            { category: { contains: 'OVEN', mode: 'insensitive' } },
+            { category: { contains: 'MICROWAVE', mode: 'insensitive' } }
+          ];
+          break;
+        case 'corner':
+          where.category = { contains: 'CORNER', mode: 'insensitive' };
+          break;
+        case 'drawer':
+          where.AND = [
+            { category: { contains: 'DRAWER', mode: 'insensitive' } },
+            { category: { not: { contains: 'VANITY', mode: 'insensitive' } } }
+          ];
+          break;
+        case 'sink':
+          where.AND = [
+            { category: { contains: 'SINK', mode: 'insensitive' } },
+            { category: { not: { contains: 'VANITY', mode: 'insensitive' } } }
+          ];
+          break;
+        case 'ada':
+          where.category = { contains: 'ADA', mode: 'insensitive' };
+          break;
+        case 'accessory':
+          where.category = { contains: 'ACCESSORY', mode: 'insensitive' };
+          break;
+      }
+    }
+
     if (search) {
-      where.OR = [
-        { itemCode: { contains: search as string, mode: 'insensitive' } },
-        { description: { contains: search as string, mode: 'insensitive' } }
-      ];
+      const searchCondition = {
+        OR: [
+          { itemCode: { contains: search as string, mode: 'insensitive' } },
+          { description: { contains: search as string, mode: 'insensitive' } }
+        ]
+      };
+      if (where.AND) {
+        where.AND.push(searchCondition);
+      } else if (where.OR) {
+        where.AND = [{ OR: where.OR }, searchCondition];
+        delete where.OR;
+      } else {
+        where.OR = searchCondition.OR;
+      }
     }
 
     const pageNum = parseInt(page as string);
@@ -151,7 +209,32 @@ router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
-// Get product categories for a collection
+// Get all unique categories
+router.get('/categories/all', async (req, res) => {
+  try {
+    const { collectionId } = req.query;
+
+    const where: any = {};
+    if (collectionId) {
+      where.collectionId = collectionId;
+    }
+
+    const products = await prisma.product.findMany({
+      where,
+      select: { category: true },
+      distinct: ['category']
+    });
+
+    const categories = products.map(p => p.category).sort();
+
+    res.json(categories);
+  } catch (error) {
+    console.error('Get categories error:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+// Get product categories for a collection (legacy endpoint)
 router.get('/categories/:collectionId', async (req, res) => {
   try {
     const { collectionId } = req.params;

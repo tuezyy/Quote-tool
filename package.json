@@ -7,9 +7,13 @@
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
-    "build": "npm run build:frontend && npm run build:backend",
-    "build:frontend": "cd frontend && npm run build",
-    "build:backend": "cd backend && npm run build",
+    "build": "npm run build:frontend && npm run build:backend && npm run db:generate",
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:backend": "cd backend && npm install && npm run build",
+    "db:generate": "cd backend && npx prisma generate",
+    "db:migrate": "cd backend && npx prisma migrate deploy",
+    "start": "cd backend && npm start",
+    "postinstall": "npm run build:frontend && npm run build:backend",
     "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
   },
   "keywords": ["cabinet", "quoting", "react", "express"],
@@ -17,5 +21,8 @@
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

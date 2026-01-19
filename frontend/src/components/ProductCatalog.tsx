@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from '../services/api';
-import { Product, Collection, Style } from '../types';
+import { Product, Collection } from '../types';
 
 interface ProductCatalogProps {
   onAddProduct?: (product: Product, quantity: number) => void;
   selectedCollectionId?: string;
-  selectedStyleId?: string;
 }
 
-export default function ProductCatalog({ onAddProduct, selectedCollectionId, selectedStyleId }: ProductCatalogProps) {
+export default function ProductCatalog({ onAddProduct, selectedCollectionId }: ProductCatalogProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +15,7 @@ export default function ProductCatalog({ onAddProduct, selectedCollectionId, sel
 
   // Filters
   const [collectionFilter, setCollectionFilter] = useState(selectedCollectionId || '');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [categoryGroup, setCategoryGroup] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -25,13 +24,17 @@ export default function ProductCatalog({ onAddProduct, selectedCollectionId, sel
   const [totalPages, setTotalPages] = useState(1);
   const limit = 24;
 
-  // Categories (common across all collections)
-  const categories = [
-    'Base Cabinets',
-    'Wall Cabinets',
-    'Tall Cabinets',
-    'Specialty Cabinets',
-    'Vanity Cabinets'
+  // Category groups for filtering
+  const categoryGroups = [
+    { value: 'wall', label: 'Wall Cabinets' },
+    { value: 'base', label: 'Base Cabinets' },
+    { value: 'vanity', label: 'Vanity Cabinets' },
+    { value: 'corner', label: 'Corner Cabinets' },
+    { value: 'drawer', label: 'Drawer Cabinets' },
+    { value: 'sink', label: 'Sink Base Cabinets' },
+    { value: 'utility', label: 'Utility/Tall Cabinets' },
+    { value: 'ada', label: 'ADA Cabinets' },
+    { value: 'accessory', label: 'Accessories' }
   ];
 
   useEffect(() => {
@@ -40,7 +43,7 @@ export default function ProductCatalog({ onAddProduct, selectedCollectionId, sel
 
   useEffect(() => {
     fetchProducts();
-  }, [collectionFilter, categoryFilter, searchTerm, page]);
+  }, [collectionFilter, categoryGroup, searchTerm, page]);
 
   const fetchCollections = async () => {
     try {
@@ -56,7 +59,7 @@ export default function ProductCatalog({ onAddProduct, selectedCollectionId, sel
     try {
       const params: any = { page, limit };
       if (collectionFilter) params.collectionId = collectionFilter;
-      if (categoryFilter) params.category = categoryFilter;
+      if (categoryGroup) params.categoryGroup = categoryGroup;
       if (searchTerm) params.search = searchTerm;
 
       const response = await axios.get('/products', { params });
@@ -86,7 +89,7 @@ export default function ProductCatalog({ onAddProduct, selectedCollectionId, sel
 
   const resetFilters = () => {
     setCollectionFilter(selectedCollectionId || '');
-    setCategoryFilter('');
+    setCategoryGroup('');
     setSearchTerm('');
     setPage(1);
   };
@@ -133,17 +136,17 @@ export default function ProductCatalog({ onAddProduct, selectedCollectionId, sel
           {/* Category Filter */}
           <div>
             <select
-              value={categoryFilter}
+              value={categoryGroup}
               onChange={(e) => {
-                setCategoryFilter(e.target.value);
+                setCategoryGroup(e.target.value);
                 setPage(1);
               }}
               className="input w-full"
             >
               <option value="">All Categories</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
+              {categoryGroups.map((group) => (
+                <option key={group.value} value={group.value}>
+                  {group.label}
                 </option>
               ))}
             </select>

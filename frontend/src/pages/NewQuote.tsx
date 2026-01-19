@@ -42,6 +42,8 @@ export default function NewQuote() {
 
   // Step 4: Review & Save
   const [taxRate, setTaxRate] = useState(0.0875); // Default 8.75%
+  const [laborCost, setLaborCost] = useState(0);
+  const [otherCosts, setOtherCosts] = useState(0);
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -136,16 +138,52 @@ export default function NewQuote() {
     setQuoteItems(quoteItems.filter((_, i) => i !== index));
   };
 
-  const calculateSubtotal = () => {
+  // MSRP total = retail value of cabinets (what customer would pay elsewhere)
+  const calculateMsrpTotal = () => {
+    return quoteItems.reduce((sum, item) => sum + (Number(item.product.msrp) * item.quantity), 0);
+  };
+
+  // Cabinet cost = what the installer pays (sum of price * quantity)
+  const calculateCabinetCost = () => {
     return quoteItems.reduce((sum, item) => sum + item.total, 0);
+  };
+
+  // Subtotal = cabinet cost + labor + other costs (before tax)
+  const calculateSubtotal = () => {
+    return calculateCabinetCost() + laborCost + otherCosts;
   };
 
   const calculateTax = () => {
     return calculateSubtotal() * taxRate;
   };
 
+  // Total = subtotal + tax (what customer pays)
   const calculateTotal = () => {
     return calculateSubtotal() + calculateTax();
+  };
+
+  // Customer savings = MSRP - their final price
+  const calculateCustomerSavings = () => {
+    return calculateMsrpTotal() - calculateTotal();
+  };
+
+  // Customer savings percentage
+  const calculateSavingsPercent = () => {
+    const msrp = calculateMsrpTotal();
+    if (msrp === 0) return 0;
+    return (calculateCustomerSavings() / msrp) * 100;
+  };
+
+  // Profit = Total customer pays - cabinet cost (installer's cost)
+  const calculateProfit = () => {
+    return calculateTotal() - calculateCabinetCost();
+  };
+
+  // Profit margin percentage
+  const calculateProfitMargin = () => {
+    const total = calculateTotal();
+    if (total === 0) return 0;
+    return (calculateProfit() / total) * 100;
   };
 
   const handleSaveQuote = async (status: 'DRAFT' | 'SENT' = 'DRAFT') => {
@@ -168,10 +206,15 @@ export default function NewQuote() {
           unitPrice: item.unitPrice,
           total: item.total
         })),
+        msrpTotal: calculateMsrpTotal(),
+        cabinetCost: calculateCabinetCost(),
+        laborCost,
+        otherCosts,
         subtotal: calculateSubtotal(),
         taxRate,
         taxAmount: calculateTax(),
         total: calculateTotal(),
+        profit: calculateProfit(),
         status,
         notes
       };
@@ -523,9 +566,10 @@ export default function NewQuote() {
               </div>
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <div className="flex justify-between text-xl font-bold">
-                  <span>Subtotal:</span>
-                  <span className="text-green-600">{formatPrice(calculateSubtotal())}</span>
+                  <span>Cabinet Cost (Your Cost):</span>
+                  <span className="text-blue-600">{formatPrice(calculateCabinetCost())}</span>
                 </div>
+                <p className="text-sm text-gray-500 mt-1">This is what you pay for the cabinets</p>
               </div>
             </div>
           )}
@@ -589,20 +633,103 @@ export default function NewQuote() {
             </div>
           </div>
 
-          {/* Totals */}
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span className="font-semibold">{formatPrice(calculateSubtotal())}</span>
+          {/* Labor & Other Costs */}
+          <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded">
+            <h3 className="font-semibold mb-4">Additional Costs</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Labor Cost ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={laborCost || ''}
+                  onChange={(e) => setLaborCost(parseFloat(e.target.value) || 0)}
+                  className="input"
+                  placeholder="0.00"
+                />
               </div>
-              <div className="flex justify-between">
-                <span>Tax ({(taxRate * 100).toFixed(2)}%):</span>
-                <span className="font-semibold">{formatPrice(calculateTax())}</span>
+              <div>
+                <label className="label">Other Costs ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={otherCosts || ''}
+                  onChange={(e) => setOtherCosts(parseFloat(e.target.value) || 0)}
+                  className="input"
+                  placeholder="0.00"
+                />
               </div>
-              <div className="flex justify-between text-xl font-bold pt-2 border-t border-blue-300">
-                <span>Total:</span>
-                <span className="text-green-600">{formatPrice(calculateTotal())}</span>
+            </div>
+          </div>
+
+          {/* Two Column Layout: Customer View & Your Profit */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Customer Preview - What they will see */}
+            <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-lg">
+              <div className="flex items-center gap-2 mb-4">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <h3 className="font-semibold text-blue-800">Customer Will See</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Retail Value (MSRP):</span>
+                  <span className="font-semibold line-through text-gray-500">{formatPrice(calculateMsrpTotal())}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Tax ({(taxRate * 100).toFixed(2)}%):</span>
+                  <span className="font-semibold">{formatPrice(calculateTax())}</span>
+                </div>
+                <div className="flex justify-between text-xl font-bold pt-3 border-t border-blue-300">
+                  <span>Your Price:</span>
+                  <span className="text-blue-700">{formatPrice(calculateTotal())}</span>
+                </div>
+                {calculateCustomerSavings() > 0 && (
+                  <div className="flex justify-between text-green-700 bg-green-100 p-2 rounded">
+                    <span className="font-semibold">You Save:</span>
+                    <span className="font-bold">{formatPrice(calculateCustomerSavings())} ({calculateSavingsPercent().toFixed(0)}% off!)</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Your Profit - Internal only */}
+            <div className="p-4 bg-green-50 border-2 border-green-300 rounded-lg">
+              <div className="flex items-center gap-2 mb-4">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <h3 className="font-semibold text-green-800">Your Profit (Private)</h3>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Your Cabinet Cost:</span>
+                  <span className="font-semibold">{formatPrice(calculateCabinetCost())}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">+ Labor:</span>
+                  <span className="font-semibold">{formatPrice(laborCost)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">+ Other:</span>
+                  <span className="font-semibold">{formatPrice(otherCosts)}</span>
+                </div>
+                <div className="flex justify-between text-sm pt-2 border-t border-green-200">
+                  <span className="text-gray-600">Customer Pays:</span>
+                  <span className="font-semibold">{formatPrice(calculateTotal())}</span>
+                </div>
+                <div className="flex justify-between text-xl font-bold pt-3 border-t border-green-300">
+                  <span>Your Profit:</span>
+                  <span className="text-green-600">{formatPrice(calculateProfit())}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Profit Margin:</span>
+                  <span className="font-semibold text-green-600">{calculateProfitMargin().toFixed(1)}%</span>
+                </div>
               </div>
             </div>
           </div>
