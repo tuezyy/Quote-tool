@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import collectionRoutes from './routes/collections';
@@ -14,16 +15,17 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: isProduction ? true : (process.env.FRONTEND_URL || 'http://localhost:5173'),
   credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/collections', collectionRoutes);
 app.use('/api/styles', styleRoutes);
@@ -34,9 +36,22 @@ app.use('/api/settings', settingRoutes);
 app.use('/api/users', userRoutes);
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Serve frontend in production
+if (isProduction) {
+  const frontendPath = path.join(__dirname, '../../frontend/dist');
+
+  // Serve static files
+  app.use(express.static(frontendPath));
+
+  // Handle SPA routing - serve index.html for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+}
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -48,5 +63,8 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  if (isProduction) {
+    console.log(`🌐 Serving frontend from: ${path.join(__dirname, '../../frontend/dist')}`);
+  }
 });
