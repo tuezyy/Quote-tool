@@ -20,6 +20,7 @@ export interface Style {
   collectionId: string
   code: string
   name: string
+  description?: string
   collection?: Collection
 }
 
@@ -40,13 +41,14 @@ export interface Product {
 
 export interface Customer {
   id: string
-  name: string
-  email?: string
-  phone?: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
   address?: string
   city?: string
   state?: string
-  zip?: string
+  zipCode?: string
   createdAt: string
   updatedAt: string
 }
@@ -62,7 +64,7 @@ export interface Quote {
   taxRate: number
   taxAmount: number
   total: number
-  status: 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED'
+  status: 'DRAFT' | 'SENT' | 'APPROVED' | 'REJECTED'
   notes?: string
   createdAt: string
   updatedAt: string
@@ -85,6 +87,7 @@ export interface QuoteItem {
   quantity: number
   unitPrice: number
   lineTotal: number
+  total: number
   roomName?: string
   notes?: string
   product?: Product

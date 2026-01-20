@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from '../services/api';
-import { Product, Collection, Style } from '../types';
+import { Product, Collection } from '../types';
 
 interface ProductCatalogProps {
   onAddProduct?: (product: Product, quantity: number) => void;
   selectedCollectionId?: string;
-  selectedStyleId?: string;
 }
 
-export default function ProductCatalog({ onAddProduct, selectedCollectionId, selectedStyleId }: ProductCatalogProps) {
+export default function ProductCatalog({ onAddProduct, selectedCollectionId }: ProductCatalogProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);

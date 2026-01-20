@@ -1,5 +1,4 @@
 import PDFDocument from 'pdfkit';
-import { Readable } from 'stream';
 
 interface QuoteData {
   quoteNumber: string;
@@ -42,7 +41,7 @@ interface QuoteData {
   };
 }
 
-export async function generateQuotePDF(quote: QuoteData): Promise<Readable> {
+export function generateQuotePDF(quote: QuoteData): PDFKit.PDFDocument {
   const doc = new PDFDocument({ margin: 50, size: 'LETTER' });
 
   // Helper function to format currency

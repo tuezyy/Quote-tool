@@ -14,7 +14,8 @@ router.get('/', authenticate, async (req, res) => {
 
     if (search) {
       where.OR = [
-        { name: { contains: search as string, mode: 'insensitive' } },
+        { firstName: { contains: search as string, mode: 'insensitive' } },
+        { lastName: { contains: search as string, mode: 'insensitive' } },
         { email: { contains: search as string, mode: 'insensitive' } },
         { phone: { contains: search as string, mode: 'insensitive' } }
       ];
@@ -27,7 +28,7 @@ router.get('/', authenticate, async (req, res) => {
     const [customers, total] = await Promise.all([
       prisma.customer.findMany({
         where,
-        orderBy: { name: 'asc' },
+        orderBy: { lastName: 'asc' },
         skip,
         take: limitNum
       }),

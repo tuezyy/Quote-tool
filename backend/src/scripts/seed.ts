@@ -3,55 +3,6 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const productData = {
-  "metadata": {
-    "total_products": 1044,
-    "collections_count": 5,
-    "export_date": "2026-01-18"
-  },
-  "collections": [
-    {
-      "name": "Essential & Charm",
-      "styles": [
-        "SA-Shaker Smokey Ash",
-        "AG-Shaker Aston Green",
-        "SE-Shaker Expresso",
-        "NB-Shaker Navy Blue",
-        "IB-Shaker Iron Black"
-      ],
-      "product_count": 261,
-      "products": ${JSON.stringify([
-        {
-          "item_code": "W1212GD",
-          "description": "Wall Cabinet - 12\"W x 12\"H x 12\"D - 1D",
-          "category": "WALL CABINETS - 12\"H",
-          "msrp": 103.0,
-          "your_price": 41.2
-        }
-      ])} // Abbreviated for demo - full data will be added
-    }
-  ]
-};
-
-// Helper function to parse dimensions from description
-function parseDimensions(description: string) {
-  const match = description.match(/(\d+)"W x (\d+)"H x (\d+)"D/);
-  if (match) {
-    return {
-      width: parseInt(match[1]),
-      height: parseInt(match[2]),
-      depth: parseInt(match[3])
-    };
-  }
-  return { width: null, height: null, depth: null };
-}
-
-// Helper function to parse doors from description
-function parseDoors(description: string) {
-  const match = description.match(/(\d+D)/);
-  return match ? match[1] : null;
-}
-
 async function main() {
   console.log('🌱 Starting database seed...');
 
@@ -89,56 +40,105 @@ async function main() {
 
   // Create default settings
   console.log('Creating default settings...');
-  await prisma.setting.upsert({
-    where: { key: 'tax_rate' },
-    update: {},
-    create: {
-      key: 'tax_rate',
-      value: '0.0875'
-    }
-  });
 
-  await prisma.setting.upsert({
-    where: { key: 'company_name' },
-    update: {},
-    create: {
-      key: 'company_name',
-      value: 'Cabinet Routing & Installation Co.'
-    }
-  });
+  const settingsToCreate = [
+    { key: 'tax_rate', value: '0.0875' },
+    { key: 'company_name', value: 'Cabinet Quoting & Installation Co.' },
+    { key: 'company_email', value: 'info@cabinetquoting.com' },
+    { key: 'company_phone', value: '(555) 123-4567' },
+    { key: 'company_address', value: '' }
+  ];
 
-  await prisma.setting.upsert({
-    where: { key: 'company_email' },
-    update: {},
-    create: {
-      key: 'company_email',
-      value: 'info@cabinetquoting.com'
-    }
-  });
-
-  await prisma.setting.upsert({
-    where: { key: 'company_phone' },
-    update: {},
-    create: {
-      key: 'company_phone',
-      value: '(555) 123-4567'
-    }
-  });
+  for (const setting of settingsToCreate) {
+    await prisma.setting.upsert({
+      where: { key: setting.key },
+      update: {},
+      create: setting
+    });
+  }
 
   console.log('✅ Default settings created');
 
-  console.log('\n📦 Importing collections and products...');
+  // Create sample collections for demo purposes
+  console.log('Creating sample collections...');
 
-  // Note: You'll need to provide the full product JSON data here
-  // For now, this is a skeleton that shows the structure
+  const collections = [
+    { name: 'Essential & Charm', description: 'Classic shaker style cabinets in various finishes' },
+    { name: 'Classical & Double Shaker', description: 'Traditional double shaker door designs' },
+    { name: 'Slim Shaker', description: 'Modern slim profile shaker cabinets' },
+    { name: 'Frameless High Gloss', description: 'Contemporary frameless high gloss cabinets' },
+    { name: 'Builder Grade', description: 'Economical builder grade cabinet options' }
+  ];
 
-  console.log('⚠️  Product data import not yet implemented');
-  console.log('   Please run the import script separately with full product data');
+  for (const collection of collections) {
+    await prisma.collection.upsert({
+      where: { name: collection.name },
+      update: { description: collection.description },
+      create: collection
+    });
+  }
+
+  console.log('✅ Sample collections created');
+
+  // Create sample styles for Essential & Charm collection
+  const essentialCharm = await prisma.collection.findFirst({
+    where: { name: 'Essential & Charm' }
+  });
+
+  if (essentialCharm) {
+    const styles = [
+      { code: 'SA', name: 'Shaker Smokey Ash', description: 'Smokey ash finish shaker style' },
+      { code: 'AG', name: 'Shaker Aston Green', description: 'Aston green finish shaker style' },
+      { code: 'SE', name: 'Shaker Espresso', description: 'Espresso finish shaker style' },
+      { code: 'NB', name: 'Shaker Navy Blue', description: 'Navy blue finish shaker style' },
+      { code: 'IB', name: 'Shaker Iron Black', description: 'Iron black finish shaker style' }
+    ];
+
+    for (const style of styles) {
+      await prisma.style.upsert({
+        where: {
+          collectionId_code: {
+            collectionId: essentialCharm.id,
+            code: style.code
+          }
+        },
+        update: { name: style.name, description: style.description },
+        create: {
+          collectionId: essentialCharm.id,
+          code: style.code,
+          name: style.name,
+          description: style.description
+        }
+      });
+    }
+
+    console.log('✅ Sample styles created for Essential & Charm');
+  }
+
+  // Create a sample customer
+  console.log('Creating sample customer...');
+  await prisma.customer.upsert({
+    where: { email: 'johndoe@example.com' },
+    update: {},
+    create: {
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'johndoe@example.com',
+      phone: '(555) 987-6543',
+      address: '123 Main Street',
+      city: 'Springfield',
+      state: 'CA',
+      zipCode: '90210'
+    }
+  });
+  console.log('✅ Sample customer created');
 
   console.log('\n✨ Seed completed successfully!');
   console.log('\nDefault credentials:');
   console.log('  Admin: admin@cabinetquoting.com / admin123');
   console.log('  Installer: installer@cabinetquoting.com / installer123');
+  console.log('\n📦 Note: To import full product data, run:');
+  console.log('  npx tsx src/scripts/import-products.ts');
 }
 
 main()
