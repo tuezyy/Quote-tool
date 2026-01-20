@@ -28,7 +28,7 @@ export default function Customers() {
     setLoading(true);
     try {
       const response = await axios.get('/api/customers');
-      setCustomers(response.data);
+      setCustomers(response.data.customers || []);
       setError('');
     } catch (err: any) {
       setError('Failed to load customers');

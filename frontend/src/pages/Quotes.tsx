@@ -19,7 +19,7 @@ export default function Quotes() {
     setLoading(true);
     try {
       const response = await axios.get('/api/quotes');
-      setQuotes(response.data);
+      setQuotes(response.data.quotes || []);
       setError('');
     } catch (err: any) {
       setError('Failed to load quotes');

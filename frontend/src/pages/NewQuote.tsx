@@ -53,7 +53,7 @@ export default function NewQuote() {
   const fetchCustomers = async () => {
     try {
       const response = await axios.get('/api/customers');
-      setCustomers(response.data);
+      setCustomers(response.data.customers || []);
     } catch (err) {
       console.error('Failed to fetch customers:', err);
     }
@@ -146,6 +146,14 @@ export default function NewQuote() {
 
   const calculateTotal = () => {
     return calculateSubtotal() + calculateTax();
+  };
+
+  const calculateTotalMsrp = () => {
+    return quoteItems.reduce((sum, item) => sum + (Number(item.product.msrp) * item.quantity), 0);
+  };
+
+  const calculateTotalSavings = () => {
+    return calculateTotalMsrp() - calculateSubtotal();
   };
 
   const handleSaveQuote = async (status: 'DRAFT' | 'SENT' = 'DRAFT') => {
@@ -574,34 +582,52 @@ export default function NewQuote() {
           <div className="mb-6">
             <h3 className="font-semibold mb-3">Items</h3>
             <div className="space-y-2">
-              {quoteItems.map((item, index) => (
-                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                  <div className="flex-1">
-                    <div className="font-medium">{item.product.itemCode}</div>
-                    <div className="text-sm text-gray-600">{item.product.description}</div>
+              {quoteItems.map((item, index) => {
+                const msrp = Number(item.product.msrp);
+                const savings = (msrp - item.unitPrice) * item.quantity;
+                return (
+                  <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                    <div className="flex-1">
+                      <div className="font-medium">{item.product.itemCode}</div>
+                      <div className="text-sm text-gray-600">{item.product.description}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-400 line-through">MSRP: {formatPrice(msrp * item.quantity)}</div>
+                      <div className="text-sm text-gray-600">Qty: {item.quantity} @ {formatPrice(item.unitPrice)}</div>
+                      <div className="font-semibold text-green-600">{formatPrice(item.total)}</div>
+                      {savings > 0 && (
+                        <div className="text-xs text-green-500">Save {formatPrice(savings)}</div>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-600">Qty: {item.quantity} @ {formatPrice(item.unitPrice)}</div>
-                    <div className="font-semibold">{formatPrice(item.total)}</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {/* Totals */}
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded">
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span className="font-semibold">{formatPrice(calculateSubtotal())}</span>
+              <div className="flex justify-between text-gray-500">
+                <span>MSRP Total:</span>
+                <span className="line-through">{formatPrice(calculateTotalMsrp())}</span>
               </div>
               <div className="flex justify-between">
+                <span>Your Price (Subtotal):</span>
+                <span className="font-semibold">{formatPrice(calculateSubtotal())}</span>
+              </div>
+              {calculateTotalSavings() > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Total Savings:</span>
+                  <span className="font-semibold">-{formatPrice(calculateTotalSavings())}</span>
+                </div>
+              )}
+              <div className="flex justify-between pt-2 border-t border-blue-300">
                 <span>Tax ({(taxRate * 100).toFixed(2)}%):</span>
                 <span className="font-semibold">{formatPrice(calculateTax())}</span>
               </div>
               <div className="flex justify-between text-xl font-bold pt-2 border-t border-blue-300">
-                <span>Total:</span>
+                <span>Total (includes installation):</span>
                 <span className="text-green-600">{formatPrice(calculateTotal())}</span>
               </div>
             </div>

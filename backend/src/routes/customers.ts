@@ -81,13 +81,14 @@ router.post(
   '/',
   authenticate,
   [
-    body('name').trim().notEmpty(),
-    body('email').optional().isEmail().normalizeEmail(),
-    body('phone').optional().trim(),
+    body('firstName').trim().notEmpty().withMessage('First name is required'),
+    body('lastName').trim().notEmpty().withMessage('Last name is required'),
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('phone').trim().notEmpty().withMessage('Phone is required'),
     body('address').optional().trim(),
     body('city').optional().trim(),
     body('state').optional().trim(),
-    body('zip').optional().trim()
+    body('zipCode').optional().trim()
   ],
   async (req, res) => {
     try {
@@ -96,15 +97,27 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const customerData = req.body;
+      const { firstName, lastName, email, phone, address, city, state, zipCode } = req.body;
 
       const customer = await prisma.customer.create({
-        data: customerData
+        data: {
+          firstName,
+          lastName,
+          email,
+          phone,
+          address,
+          city,
+          state,
+          zipCode
+        }
       });
 
       res.status(201).json(customer);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create customer error:', error);
+      if (error.code === 'P2002') {
+        return res.status(400).json({ error: 'A customer with this email already exists' });
+      }
       res.status(500).json({ error: 'Failed to create customer' });
     }
   }
