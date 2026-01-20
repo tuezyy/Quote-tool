@@ -13,6 +13,10 @@ export default function ProductCatalog({ onAddProduct, selectedCollectionId }: P
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Quantity modal state
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState(1);
+
   // Filters
   const [collectionFilter, setCollectionFilter] = useState(selectedCollectionId || '');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -70,10 +74,21 @@ export default function ProductCatalog({ onAddProduct, selectedCollectionId }: P
   };
 
   const handleAddProduct = (product: Product) => {
-    const quantity = parseInt(prompt(`How many ${product.itemCode} would you like to add?`, '1') || '0');
-    if (quantity > 0 && onAddProduct) {
-      onAddProduct(product, quantity);
+    setSelectedProduct(product);
+    setQuantity(1);
+  };
+
+  const handleConfirmAdd = () => {
+    if (quantity > 0 && selectedProduct && onAddProduct) {
+      onAddProduct(selectedProduct, quantity);
     }
+    setSelectedProduct(null);
+    setQuantity(1);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedProduct(null);
+    setQuantity(1);
   };
 
   const formatPrice = (price: number) => {
@@ -332,6 +347,65 @@ export default function ProductCatalog({ onAddProduct, selectedCollectionId }: P
             </div>
           )}
         </>
+      )}
+
+      {/* Quantity Input Modal */}
+      {selectedProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-4">Add to Quote</h3>
+
+            <div className="mb-4">
+              <div className="text-sm font-semibold text-blue-600">{selectedProduct.itemCode}</div>
+              <div className="text-sm text-gray-600 mt-1">{selectedProduct.description}</div>
+              <div className="text-sm text-gray-500 mt-1">{selectedProduct.category}</div>
+              <div className="mt-2">
+                <span className="text-xs text-gray-400">MSRP: {formatPrice(Number(selectedProduct.msrp))}</span>
+                <span className="ml-2 text-green-600 font-semibold">{formatPrice(Number(selectedProduct.price))}</span>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  className="w-12 h-12 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-xl font-semibold"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-20 h-12 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <button
+                  onClick={() => setQuantity(q => q + 1)}
+                  className="w-12 h-12 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-xl font-semibold"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCloseModal}
+                className="flex-1 py-3 px-4 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAdd}
+                className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+              >
+                Add {quantity} to Quote
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
