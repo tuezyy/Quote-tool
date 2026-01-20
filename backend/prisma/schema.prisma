@@ -45,6 +45,7 @@ model Style {
   collectionId String   @map("collection_id")
   code         String
   name         String
+  description  String?
   createdAt    DateTime @default(now()) @map("created_at")
 
   collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
@@ -83,7 +84,7 @@ model Customer {
   id        String   @id @default(uuid())
   firstName String   @map("first_name")
   lastName  String   @map("last_name")
-  email     String
+  email     String   @unique
   phone     String
   address   String?
   city      String?
@@ -136,7 +137,7 @@ model Quote {
 enum QuoteStatus {
   DRAFT
   SENT
-  ACCEPTED
+  APPROVED
   REJECTED
 }
 

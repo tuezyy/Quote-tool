@@ -69,7 +69,7 @@ export interface Quote {
   taxAmount: number
   total: number
   profit: number
-  status: 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED'
+  status: 'DRAFT' | 'SENT' | 'APPROVED' | 'REJECTED'
   notes?: string
   createdAt: string
   updatedAt: string
@@ -92,6 +92,7 @@ export interface QuoteItem {
   quantity: number
   unitPrice: number
   lineTotal: number
+  total: number
   roomName?: string
   notes?: string
   product?: Product

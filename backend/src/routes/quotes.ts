@@ -568,7 +568,7 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
       companyInfo
     };
 
-    const pdfStream = await generateQuotePDF(pdfData);
+    const pdfStream = generateQuotePDF(pdfData);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${quote.quoteNumber}.pdf"`);
