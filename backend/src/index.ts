@@ -1,75 +1,39 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import dotenv from 'dotenv';
-import authRoutes from './routes/auth';
-import collectionRoutes from './routes/collections';
-import styleRoutes from './routes/styles';
-import productRoutes from './routes/products';
-import customerRoutes from './routes/customers';
-import quoteRoutes from './routes/quotes';
-import settingRoutes from './routes/settings';
-import userRoutes from './routes/users';
-
-dotenv.config();
+import { PrismaClient } from '@prisma/client';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-const isProduction = process.env.NODE_ENV === 'production';
+const prisma = new PrismaClient();
+const PORT = process.env.PORT || 8080;
 
-// Middleware
-app.use(cors({
-  origin: isProduction ? true : (process.env.FRONTEND_URL || 'http://localhost:5173'),
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/collections', collectionRoutes);
-app.use('/api/styles', styleRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/quotes', quoteRoutes);
-app.use('/api/settings', settingRoutes);
-app.use('/api/users', userRoutes);
-
-// Health check
+// API Routes (Add your specific routes here if you have them)
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', environment: process.env.NODE_ENV });
 });
 
-// Serve frontend in production
-if (isProduction) {
-  const frontendPath = path.join(__dirname, '../../frontend/dist');
+// Static File Serving
+const rootDir = process.cwd();
+// On Railway, the path is /app/frontend/dist
+const frontendPath = path.join(rootDir, 'frontend', 'dist');
 
-console.log('Checking for frontend at:', frontendPath);
-  // Serve static files
-  app.use(express.static(frontendPath));
+app.use(express.static(frontendPath));
 
-  // Handle SPA routing - serve index.html for all non-API routes
-  app.get('*', (req, res) => {
-const indexPath = path.join(frontendPath, 'index.html');
+// The "Catch-all" route to serve the frontend
+app.get('*', (req, res) => {
+  const indexPath = path.join(frontendPath, 'index.html');
   res.sendFile(indexPath, (err) => {
-if (err) {
-      console.error('CRITICAL: index.html not found at', indexPath);
-      res.status(500).send("Frontend files are missing on the server. Check build logs.");
-  });
-}
-
-// Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error'
+    if (err) {
+      console.error('Frontend missing at:', indexPath);
+      res.status(500).send("Frontend build missing on server.");
+    }
   });
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  if (isProduction) {
-    console.log(`🌐 Serving frontend from: ${path.join(__dirname, '../../frontend/dist')}`);
-  }
 });
