@@ -43,6 +43,9 @@ export default function NewQuote() {
   // Step 4: Review & Save
   const [taxRate, setTaxRate] = useState(0.0875); // Default 8.75%
   const [notes, setNotes] = useState('');
+  const [installationFee, setInstallationFee] = useState(0);
+  const [miscExpenses, setMiscExpenses] = useState(0);
+  const [clientPreview, setClientPreview] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -180,6 +183,9 @@ export default function NewQuote() {
         taxRate,
         taxAmount: calculateTax(),
         total: calculateTotal(),
+        installationFee,
+        miscExpenses,
+        msrpTotal: calculateTotalMsrp(),
         status,
         notes
       };
@@ -569,7 +575,19 @@ export default function NewQuote() {
       {/* Step 4: Review & Save */}
       {step === 4 && (
         <div className="card">
-          <h2 className="text-2xl font-bold mb-6">Review Quote</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Review Quote</h2>
+            <button
+              onClick={() => setClientPreview(!clientPreview)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                clientPreview
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {clientPreview ? 'Client View' : 'Installer View'}
+            </button>
+          </div>
 
           {/* Customer Info */}
           <div className="mb-6 p-4 bg-gray-50 rounded border border-gray-200">
@@ -598,11 +616,20 @@ export default function NewQuote() {
                       <div className="text-sm text-gray-600">{item.product.description}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs text-gray-400 line-through">MSRP: {formatPrice(msrp * item.quantity)}</div>
-                      <div className="text-sm text-gray-600">Qty: {item.quantity} @ {formatPrice(item.unitPrice)}</div>
-                      <div className="font-semibold text-green-600">{formatPrice(item.total)}</div>
-                      {savings > 0 && (
-                        <div className="text-xs text-green-500">Save {formatPrice(savings)}</div>
+                      {clientPreview ? (
+                        <>
+                          <div className="text-sm text-gray-600">Qty: {item.quantity}</div>
+                          <div className="font-semibold text-green-600">{formatPrice(item.total)}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-xs text-gray-400 line-through">MSRP: {formatPrice(msrp * item.quantity)}</div>
+                          <div className="text-sm text-gray-600">Qty: {item.quantity} @ {formatPrice(item.unitPrice)}</div>
+                          <div className="font-semibold text-green-600">{formatPrice(item.total)}</div>
+                          {savings > 0 && (
+                            <div className="text-xs text-green-500">Save {formatPrice(savings)}</div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -611,31 +638,117 @@ export default function NewQuote() {
             </div>
           </div>
 
-          {/* Totals */}
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded">
-            <div className="space-y-2">
-              <div className="flex justify-between text-gray-500">
-                <span>MSRP Total:</span>
-                <span className="line-through">{formatPrice(calculateTotalMsrp())}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Your Price (Subtotal):</span>
-                <span className="font-semibold">{formatPrice(calculateSubtotal())}</span>
-              </div>
-              {calculateTotalSavings() > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Total Savings:</span>
-                  <span className="font-semibold">-{formatPrice(calculateTotalSavings())}</span>
+          {/* Installer Costing - Hidden in Client View */}
+          {!clientPreview && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
+              <h3 className="font-semibold mb-4 text-yellow-800">Installer Costing (Internal Only)</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Installation Labor Fee</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={installationFee}
+                    onChange={(e) => setInstallationFee(parseFloat(e.target.value) || 0)}
+                    className="input"
+                    placeholder="0.00"
+                  />
                 </div>
+                <div>
+                  <label className="label">Miscellaneous Expenses</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={miscExpenses}
+                    onChange={(e) => setMiscExpenses(parseFloat(e.target.value) || 0)}
+                    className="input"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-yellow-300">
+                <div className="flex justify-between text-yellow-800">
+                  <span>Wholesale Cabinet Cost:</span>
+                  <span className="font-semibold">{formatPrice(calculateSubtotal())}</span>
+                </div>
+                <div className="flex justify-between text-yellow-800">
+                  <span>+ Installation Labor:</span>
+                  <span className="font-semibold">{formatPrice(installationFee)}</span>
+                </div>
+                <div className="flex justify-between text-yellow-800">
+                  <span>+ Misc Expenses:</span>
+                  <span className="font-semibold">{formatPrice(miscExpenses)}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold text-yellow-900 pt-2 border-t border-yellow-300 mt-2">
+                  <span>Internal Total (Break-even):</span>
+                  <span>{formatPrice(calculateSubtotal() + installationFee + miscExpenses)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Totals - Different views */}
+          <div className={`mb-6 p-4 rounded border ${clientPreview ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'}`}>
+            <div className="space-y-2">
+              {clientPreview ? (
+                <>
+                  <div className="flex justify-between text-gray-500">
+                    <span>Retail Market Value:</span>
+                    <span className="line-through">{formatPrice(calculateTotalMsrp())}</span>
+                  </div>
+                  <div className="flex justify-between text-green-600 font-semibold">
+                    <span>Your Savings:</span>
+                    <span>{formatPrice(calculateTotalSavings())}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-blue-300">
+                    <span>Cabinet Package:</span>
+                    <span className="font-semibold">{formatPrice(calculateSubtotal())}</span>
+                  </div>
+                  {installationFee > 0 && (
+                    <div className="flex justify-between">
+                      <span>Professional Installation:</span>
+                      <span className="font-semibold">{formatPrice(installationFee)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>Tax ({(taxRate * 100).toFixed(2)}%):</span>
+                    <span className="font-semibold">{formatPrice(calculateTax())}</span>
+                  </div>
+                  <div className="flex justify-between text-xl font-bold pt-2 border-t border-blue-300">
+                    <span>Total Package:</span>
+                    <span className="text-blue-600">{formatPrice(calculateTotal() + installationFee)}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between text-gray-500">
+                    <span>MSRP Total:</span>
+                    <span className="line-through">{formatPrice(calculateTotalMsrp())}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Wholesale Cost:</span>
+                    <span className="font-semibold">{formatPrice(calculateSubtotal())}</span>
+                  </div>
+                  <div className="flex justify-between text-green-600">
+                    <span>Margin (MSRP - Wholesale):</span>
+                    <span className="font-semibold">{formatPrice(calculateTotalSavings())}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-green-300">
+                    <span>Tax ({(taxRate * 100).toFixed(2)}%):</span>
+                    <span className="font-semibold">{formatPrice(calculateTax())}</span>
+                  </div>
+                  <div className="flex justify-between text-xl font-bold pt-2 border-t border-green-300">
+                    <span>Client Total:</span>
+                    <span className="text-green-600">{formatPrice(calculateTotal() + installationFee)}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold text-green-700">
+                    <span>Profit Margin:</span>
+                    <span>{formatPrice(calculateTotal() + installationFee - calculateSubtotal() - installationFee - miscExpenses)}</span>
+                  </div>
+                </>
               )}
-              <div className="flex justify-between pt-2 border-t border-blue-300">
-                <span>Tax ({(taxRate * 100).toFixed(2)}%):</span>
-                <span className="font-semibold">{formatPrice(calculateTax())}</span>
-              </div>
-              <div className="flex justify-between text-xl font-bold pt-2 border-t border-blue-300">
-                <span>Total (includes installation):</span>
-                <span className="text-green-600">{formatPrice(calculateTotal())}</span>
-              </div>
             </div>
           </div>
 

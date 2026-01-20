@@ -10,6 +10,7 @@ export default function QuoteDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [clientView, setClientView] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -45,11 +46,11 @@ export default function QuoteDetail() {
     }
   };
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = async (forClient = false) => {
     if (!quote) return;
 
     try {
-      const response = await axios.get(`/quotes/${quote.id}/pdf`, {
+      const response = await axios.get(`/quotes/${quote.id}/pdf?clientView=${forClient}`, {
         responseType: 'blob'
       });
 
@@ -57,7 +58,7 @@ export default function QuoteDetail() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${quote.quoteNumber}.pdf`;
+      link.download = `${quote.quoteNumber}${forClient ? '-client' : '-internal'}.pdf`;
       link.click();
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
@@ -174,9 +175,22 @@ export default function QuoteDetail() {
             <p className="text-gray-600">Created {formatDate(quote.createdAt)}</p>
           </div>
 
-          <div className="flex gap-2">
-            <button onClick={handleDownloadPDF} className="btn-secondary">
-              Download PDF
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setClientView(!clientView)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                clientView
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {clientView ? 'Client View' : 'Installer View'}
+            </button>
+            <button onClick={() => handleDownloadPDF(false)} className="btn-secondary">
+              Internal PDF
+            </button>
+            <button onClick={() => handleDownloadPDF(true)} className="btn-primary">
+              Client PDF
             </button>
             <button onClick={handleSendEmail} className="btn-secondary">
               Send Email
@@ -304,20 +318,79 @@ export default function QuoteDetail() {
       </div>
 
       {/* Totals */}
-      <div className="card max-w-md ml-auto">
+      <div className={`card max-w-lg ml-auto ${clientView ? 'bg-blue-50 border-blue-200' : ''}`}>
         <div className="space-y-3">
-          <div className="flex justify-between text-lg">
-            <span>Subtotal:</span>
-            <span className="font-semibold">{formatPrice(Number(quote.subtotal))}</span>
-          </div>
-          <div className="flex justify-between text-lg">
-            <span>Tax ({(Number(quote.taxRate) * 100).toFixed(2)}%):</span>
-            <span className="font-semibold">{formatPrice(Number(quote.taxAmount))}</span>
-          </div>
-          <div className="flex justify-between text-2xl font-bold pt-3 border-t border-gray-300">
-            <span>Total:</span>
-            <span className="text-green-600">{formatPrice(Number(quote.total))}</span>
-          </div>
+          {clientView ? (
+            <>
+              {/* Client View - Value Focused */}
+              <div className="flex justify-between text-gray-500">
+                <span>Retail Market Value:</span>
+                <span className="line-through">{formatPrice(Number((quote as any).msrpTotal) || Number(quote.subtotal) * 1.5)}</span>
+              </div>
+              <div className="flex justify-between text-green-600 font-semibold">
+                <span>Your Savings:</span>
+                <span>{formatPrice((Number((quote as any).msrpTotal) || Number(quote.subtotal) * 1.5) - Number(quote.subtotal))}</span>
+              </div>
+              <div className="flex justify-between text-lg pt-2 border-t border-blue-300">
+                <span>Cabinet Package:</span>
+                <span className="font-semibold">{formatPrice(Number(quote.subtotal))}</span>
+              </div>
+              {Number((quote as any).installationFee) > 0 && (
+                <div className="flex justify-between text-lg">
+                  <span>Professional Installation:</span>
+                  <span className="font-semibold">{formatPrice(Number((quote as any).installationFee))}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-lg">
+                <span>Tax ({(Number(quote.taxRate) * 100).toFixed(2)}%):</span>
+                <span className="font-semibold">{formatPrice(Number(quote.taxAmount))}</span>
+              </div>
+              <div className="flex justify-between text-2xl font-bold pt-3 border-t border-blue-300">
+                <span>Total Package:</span>
+                <span className="text-blue-600">{formatPrice(Number(quote.total) + Number((quote as any).installationFee || 0))}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Installer View - Full Cost Breakdown */}
+              <div className="flex justify-between text-gray-500">
+                <span>MSRP Total:</span>
+                <span className="line-through">{formatPrice(Number((quote as any).msrpTotal) || Number(quote.subtotal) * 1.5)}</span>
+              </div>
+              <div className="flex justify-between text-lg">
+                <span>Wholesale Cost:</span>
+                <span className="font-semibold">{formatPrice(Number(quote.subtotal))}</span>
+              </div>
+              {Number((quote as any).installationFee) > 0 && (
+                <div className="flex justify-between text-lg">
+                  <span>Installation Labor:</span>
+                  <span className="font-semibold">{formatPrice(Number((quote as any).installationFee))}</span>
+                </div>
+              )}
+              {Number((quote as any).miscExpenses) > 0 && (
+                <div className="flex justify-between text-lg">
+                  <span>Misc Expenses:</span>
+                  <span className="font-semibold">{formatPrice(Number((quote as any).miscExpenses))}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-lg pt-2 border-t border-gray-200">
+                <span>Internal Total:</span>
+                <span className="font-semibold">{formatPrice(Number(quote.subtotal) + Number((quote as any).installationFee || 0) + Number((quote as any).miscExpenses || 0))}</span>
+              </div>
+              <div className="flex justify-between text-lg">
+                <span>Tax ({(Number(quote.taxRate) * 100).toFixed(2)}%):</span>
+                <span className="font-semibold">{formatPrice(Number(quote.taxAmount))}</span>
+              </div>
+              <div className="flex justify-between text-2xl font-bold pt-3 border-t border-gray-300">
+                <span>Client Total:</span>
+                <span className="text-green-600">{formatPrice(Number(quote.total) + Number((quote as any).installationFee || 0))}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold text-green-700">
+                <span>Profit Margin:</span>
+                <span>{formatPrice(Number(quote.total) - Number(quote.subtotal) - Number((quote as any).miscExpenses || 0))}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

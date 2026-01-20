@@ -99,22 +99,26 @@ model Customer {
 }
 
 model Quote {
-  id           String      @id @default(uuid())
-  quoteNumber  String      @unique @map("quote_number")
-  customerId   String      @map("customer_id")
-  userId       String      @map("user_id")
-  collectionId String      @map("collection_id")
-  styleId      String      @map("style_id")
-  subtotal     Decimal     @db.Decimal(10, 2)
-  taxRate      Decimal     @map("tax_rate") @db.Decimal(5, 4)
-  taxAmount    Decimal     @map("tax_amount") @db.Decimal(10, 2)
-  total        Decimal     @db.Decimal(10, 2)
-  status       QuoteStatus @default(DRAFT)
-  notes        String?     @db.Text
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
-  sentAt       DateTime?   @map("sent_at")
-  expiresAt    DateTime?   @map("expires_at")
+  id              String      @id @default(uuid())
+  quoteNumber     String      @unique @map("quote_number")
+  customerId      String      @map("customer_id")
+  userId          String      @map("user_id")
+  collectionId    String      @map("collection_id")
+  styleId         String      @map("style_id")
+  subtotal        Decimal     @db.Decimal(10, 2)
+  taxRate         Decimal     @map("tax_rate") @db.Decimal(5, 4)
+  taxAmount       Decimal     @map("tax_amount") @db.Decimal(10, 2)
+  total           Decimal     @db.Decimal(10, 2)
+  // Installer costing fields
+  installationFee Decimal     @default(0) @map("installation_fee") @db.Decimal(10, 2)
+  miscExpenses    Decimal     @default(0) @map("misc_expenses") @db.Decimal(10, 2)
+  msrpTotal       Decimal     @default(0) @map("msrp_total") @db.Decimal(10, 2)
+  status          QuoteStatus @default(DRAFT)
+  notes           String?     @db.Text
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  sentAt          DateTime?   @map("sent_at")
+  expiresAt       DateTime?   @map("expires_at")
 
   customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
   user       User       @relation(fields: [userId], references: [id], onDelete: Restrict)

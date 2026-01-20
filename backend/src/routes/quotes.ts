@@ -126,7 +126,10 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       styleId,
       items,
       taxRate,
-      notes
+      notes,
+      installationFee = 0,
+      miscExpenses = 0,
+      msrpTotal = 0
     } = req.body;
 
     if (!req.user) {
@@ -162,6 +165,9 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         taxRate: parseFloat(taxRate),
         taxAmount,
         total,
+        installationFee: parseFloat(installationFee) || 0,
+        miscExpenses: parseFloat(miscExpenses) || 0,
+        msrpTotal: parseFloat(msrpTotal) || 0,
         notes,
         expiresAt,
         status: 'DRAFT',
@@ -478,6 +484,7 @@ router.delete('/:quoteId/items/:itemId', authenticate, async (req, res) => {
 router.get('/:id/pdf', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
+    const { clientView } = req.query;
 
     const quote = await prisma.quote.findUnique({
       where: { id },
@@ -529,7 +536,8 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
       items: quote.items.map(item => ({
         product: {
           itemCode: item.product.itemCode,
-          description: item.product.description
+          description: item.product.description,
+          msrp: Number(item.product.msrp)
         },
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
@@ -539,8 +547,12 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
       taxRate: Number(quote.taxRate),
       taxAmount: Number(quote.taxAmount),
       total: Number(quote.total),
+      installationFee: Number(quote.installationFee),
+      miscExpenses: Number(quote.miscExpenses),
+      msrpTotal: Number(quote.msrpTotal),
       notes: quote.notes || undefined,
-      companyInfo
+      companyInfo,
+      clientView: clientView === 'true'
     };
 
     const pdfStream = generateQuotePDF(pdfData);
