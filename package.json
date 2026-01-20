@@ -14,6 +14,7 @@
     "postinstall": "cd frontend && npm install && cd ../backend && npm install",
     "prisma:generate": "cd backend && npm run prisma:generate",
     "prisma:migrate": "cd backend && npm run prisma:migrate",
+    "prisma:deploy": "cd backend && npm run prisma:deploy",
     "seed": "cd backend && npm run seed"
   },
   "keywords": ["cabinet", "quoting", "react", "express"],

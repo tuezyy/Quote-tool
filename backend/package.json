@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev",
+    "prisma:deploy": "npx prisma migrate deploy",
     "prisma:studio": "npx prisma studio",
     "seed": "npx tsx src/scripts/seed.ts"
   },
