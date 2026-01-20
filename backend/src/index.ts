@@ -34,6 +34,14 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/users', userRoutes);
+const frontendPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(frontendPath));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
