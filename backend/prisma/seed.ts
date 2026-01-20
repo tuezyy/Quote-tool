@@ -13,7 +13,7 @@ async function main() {
     update: {},
     create: {
       email: 'admin@cabinetquoting.com',
-      password: adminPassword,
+      passwordHash: adminPassword,
     },
   });
 
@@ -23,7 +23,7 @@ async function main() {
     update: {},
     create: {
       email: 'installer@cabinetquoting.com',
-      password: installerPassword,
+      passwordHash: installerPassword,
     },
   });
 

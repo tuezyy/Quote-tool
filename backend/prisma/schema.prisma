@@ -11,8 +11,8 @@ datasource db {
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
-  password     String   @map("password_hash")
-  name         String?   @map("full_name")
+  passwordHash     String   @map("password_hash")
+  fullname         String?   @map("full_name")
   role         UserRole @default(INSTALLER)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
