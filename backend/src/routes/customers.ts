@@ -83,12 +83,12 @@ router.post(
   [
     body('firstName').trim().notEmpty().withMessage('First name is required'),
     body('lastName').trim().notEmpty().withMessage('Last name is required'),
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('email').trim().isEmail().normalizeEmail().withMessage('Valid email is required'),
     body('phone').trim().notEmpty().withMessage('Phone is required'),
-    body('address').optional().trim(),
-    body('city').optional().trim(),
-    body('state').optional().trim(),
-    body('zipCode').optional().trim()
+    body('address').optional({ checkFalsy: true }).trim(),
+    body('city').optional({ checkFalsy: true }).trim(),
+    body('state').optional({ checkFalsy: true }).trim(),
+    body('zipCode').optional({ checkFalsy: true }).trim()
   ],
   async (req, res) => {
     try {
@@ -105,10 +105,10 @@ router.post(
           lastName,
           email,
           phone,
-          address,
-          city,
-          state,
-          zipCode
+          address: address || null,
+          city: city || null,
+          state: state || null,
+          zipCode: zipCode || null
         }
       });
 
