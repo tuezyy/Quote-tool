@@ -50,7 +50,7 @@ app.get('/api/health', (req, res) => {
 
 // Serve frontend in production
 if (isProduction) {
-  const frontendPath = path.join(__dirname, '../../frontend/dist');
+  const frontendPath = path.resolve(process.cwd(), 'frontend/dist');
 
   // Serve static files
   app.use(express.static(frontendPath));
