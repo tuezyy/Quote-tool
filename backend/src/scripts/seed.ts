@@ -16,7 +16,7 @@ async function main() {
     create: {
       email: 'admin@cabinetquoting.com',
       passwordHash: adminPasswordHash,
-      fullName: 'Admin User',
+      fullname: 'Admin User',
       role: 'ADMIN'
     }
   });
@@ -32,7 +32,7 @@ async function main() {
     create: {
       email: 'installer@cabinetquoting.com',
       passwordHash: installerPasswordHash,
-      fullName: 'John Installer',
+      fullname: 'John Installer',
       role: 'INSTALLER'
     }
   });

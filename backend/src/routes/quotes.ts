@@ -58,7 +58,7 @@ router.get('/', authenticate, async (req, res) => {
         where,
         include: {
           customer: true,
-          user: { select: { id: true, fullName: true, email: true } },
+          user: { select: { id: true, fullname: true, email: true } },
           collection: true,
           style: true,
           _count: { select: { items: true } }
@@ -94,7 +94,7 @@ router.get('/:id', authenticate, async (req, res) => {
       where: { id },
       include: {
         customer: true,
-        user: { select: { id: true, fullName: true, email: true } },
+        user: { select: { id: true, fullname: true, email: true } },
         collection: true,
         style: true,
         items: {

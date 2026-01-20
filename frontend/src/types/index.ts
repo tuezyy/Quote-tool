@@ -1,7 +1,7 @@
 export interface User {
   id: string
   email: string
-  fullName: string
+  fullname: string
   role: 'INSTALLER' | 'ADMIN'
 }
 
@@ -101,6 +101,6 @@ export interface LoginCredentials {
 export interface RegisterData {
   email: string
   password: string
-  fullName: string
+  fullname: string
   role?: 'INSTALLER' | 'ADMIN'
 }

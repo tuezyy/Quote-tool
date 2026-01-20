@@ -13,7 +13,7 @@ router.get('/', authenticate, requireAdmin, async (req, res) => {
       select: {
         id: true,
         email: true,
-        fullName: true,
+        fullname: true,
         role: true,
         createdAt: true,
         updatedAt: true
@@ -38,7 +38,7 @@ router.get('/:id', authenticate, requireAdmin, async (req, res) => {
       select: {
         id: true,
         email: true,
-        fullName: true,
+        fullname: true,
         role: true,
         createdAt: true,
         updatedAt: true
@@ -64,7 +64,7 @@ router.post(
   [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 6 }),
-    body('fullName').trim().notEmpty(),
+    body('fullname').trim().notEmpty(),
     body('role').isIn(['INSTALLER', 'ADMIN'])
   ],
   async (req, res) => {
@@ -74,7 +74,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, fullName, role } = req.body;
+      const { email, password, fullname, role } = req.body;
 
       // Check if user exists
       const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -90,13 +90,13 @@ router.post(
         data: {
           email,
           passwordHash,
-          fullName,
+          fullname,
           role
         },
         select: {
           id: true,
           email: true,
-          fullName: true,
+          fullname: true,
           role: true,
           createdAt: true
         }
@@ -114,12 +114,12 @@ router.post(
 router.put('/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, password, fullName, role } = req.body;
+    const { email, password, fullname, role } = req.body;
 
     const updateData: any = {};
 
     if (email) updateData.email = email;
-    if (fullName) updateData.fullName = fullName;
+    if (fullname) updateData.fullname = fullname;
     if (role) updateData.role = role;
     if (password) {
       updateData.passwordHash = await bcrypt.hash(password, 10);
@@ -131,7 +131,7 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
       select: {
         id: true,
         email: true,
-        fullName: true,
+        fullname: true,
         role: true,
         updatedAt: true
       }

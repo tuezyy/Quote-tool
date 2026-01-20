@@ -58,7 +58,7 @@ export default function Layout() {
               </div>
             </div>
             <div className="flex items-center">
-              <span className="text-sm text-gray-700 mr-4">{user?.fullName}</span>
+              <span className="text-sm text-gray-700 mr-4">{user?.fullname}</span>
               <button
                 onClick={handleLogout}
                 className="btn-secondary text-sm"

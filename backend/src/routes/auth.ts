@@ -12,7 +12,7 @@ router.post(
   [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 6 }),
-    body('fullName').trim().notEmpty(),
+    body('fullname').trim().notEmpty(),
     body('role').optional().isIn(['INSTALLER', 'ADMIN'])
   ],
   async (req, res) => {
@@ -22,7 +22,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, fullName, role } = req.body;
+      const { email, password, fullname, role } = req.body;
 
       // Check if user exists
       const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -38,7 +38,7 @@ router.post(
         data: {
           email,
           passwordHash,
-          fullName,
+          fullname,
           role: role || 'INSTALLER'
         }
       });
@@ -55,7 +55,7 @@ router.post(
         user: {
           id: user.id,
           email: user.email,
-          fullName: user.fullName,
+          fullname: user.fullname,
           role: user.role
         }
       });
@@ -106,7 +106,7 @@ router.post(
         user: {
           id: user.id,
           email: user.email,
-          fullName: user.fullName,
+          fullname: user.fullname,
           role: user.role
         }
       });
