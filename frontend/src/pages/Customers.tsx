@@ -27,7 +27,7 @@ export default function Customers() {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/customers');
+      const response = await axios.get('/customers');
       setCustomers(response.data.customers || []);
       setError('');
     } catch (err: any) {
@@ -78,10 +78,10 @@ export default function Customers() {
 
     try {
       if (editingCustomer) {
-        const response = await axios.put(`/api/customers/${editingCustomer.id}`, formData);
+        const response = await axios.put(`/customers/${editingCustomer.id}`, formData);
         setCustomers(customers.map(c => c.id === editingCustomer.id ? response.data : c));
       } else {
-        const response = await axios.post('/api/customers', formData);
+        const response = await axios.post('/customers', formData);
         setCustomers([...customers, response.data]);
       }
       handleCloseModal();
@@ -96,7 +96,7 @@ export default function Customers() {
     }
 
     try {
-      await axios.delete(`/api/customers/${customer.id}`);
+      await axios.delete(`/customers/${customer.id}`);
       setCustomers(customers.filter(c => c.id !== customer.id));
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to delete customer');
