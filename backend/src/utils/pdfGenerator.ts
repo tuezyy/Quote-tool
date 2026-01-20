@@ -124,7 +124,7 @@ export function generateQuotePDF(quote: QuoteData): PDFKit.PDFDocument {
 
     doc.fontSize(11).font('Helvetica').fillColor('#666666');
     doc.text(`Retail Market Value:`, 70, boxY + 40);
-    doc.text(`${formatCurrency(msrpTotal)}`, 250, boxY + 40, { width: 100, align: 'right', strikethrough: true });
+    doc.text(`${formatCurrency(msrpTotal)}`, 250, boxY + 40, { width: 100, align: 'right', strike: true });
 
     doc.font('Helvetica-Bold').fillColor('#16a34a');
     doc.text(`You Save:`, 380, boxY + 40);
