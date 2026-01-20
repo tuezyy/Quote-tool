@@ -80,40 +80,62 @@ async function main() {
 
   console.log('✅ Sample collections created');
 
-  // Create sample styles for Essential & Charm collection
-  const essentialCharm = await prisma.collection.findFirst({
-    where: { name: 'Essential & Charm' }
-  });
+  // Create sample styles for all collections
+  const allCollections = await prisma.collection.findMany();
 
-  if (essentialCharm) {
-    const styles = [
+  const stylesByCollection: Record<string, Array<{ code: string; name: string; description: string }>> = {
+    'Essential & Charm': [
       { code: 'SA', name: 'Shaker Smokey Ash', description: 'Smokey ash finish shaker style' },
       { code: 'AG', name: 'Shaker Aston Green', description: 'Aston green finish shaker style' },
       { code: 'SE', name: 'Shaker Espresso', description: 'Espresso finish shaker style' },
       { code: 'NB', name: 'Shaker Navy Blue', description: 'Navy blue finish shaker style' },
       { code: 'IB', name: 'Shaker Iron Black', description: 'Iron black finish shaker style' }
-    ];
+    ],
+    'Classical & Double Shaker': [
+      { code: 'DW', name: 'Double Shaker White', description: 'Classic white double shaker' },
+      { code: 'DG', name: 'Double Shaker Gray', description: 'Gray double shaker finish' },
+      { code: 'DN', name: 'Double Shaker Natural', description: 'Natural wood double shaker' }
+    ],
+    'Slim Shaker': [
+      { code: 'SW', name: 'Slim White', description: 'Modern slim profile white' },
+      { code: 'SG', name: 'Slim Gray', description: 'Modern slim profile gray' },
+      { code: 'SB', name: 'Slim Black', description: 'Modern slim profile black' }
+    ],
+    'Frameless High Gloss': [
+      { code: 'HGW', name: 'High Gloss White', description: 'Brilliant high gloss white' },
+      { code: 'HGG', name: 'High Gloss Gray', description: 'Sleek high gloss gray' },
+      { code: 'HGB', name: 'High Gloss Black', description: 'Bold high gloss black' }
+    ],
+    'Builder Grade': [
+      { code: 'BGW', name: 'Builder White', description: 'Economical white finish' },
+      { code: 'BGO', name: 'Builder Oak', description: 'Economical oak finish' },
+      { code: 'BGM', name: 'Builder Maple', description: 'Economical maple finish' }
+    ]
+  };
+
+  for (const collection of allCollections) {
+    const styles = stylesByCollection[collection.name] || [];
 
     for (const style of styles) {
       await prisma.style.upsert({
         where: {
           collectionId_code: {
-            collectionId: essentialCharm.id,
+            collectionId: collection.id,
             code: style.code
           }
         },
         update: { name: style.name, description: style.description },
         create: {
-          collectionId: essentialCharm.id,
+          collectionId: collection.id,
           code: style.code,
           name: style.name,
           description: style.description
         }
       });
     }
-
-    console.log('✅ Sample styles created for Essential & Charm');
   }
+
+  console.log('✅ Sample styles created for all collections');
 
   // Create a sample customer
   console.log('Creating sample customer...');

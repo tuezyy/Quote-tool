@@ -5,7 +5,7 @@
     "buildCommand": "npm install && cd frontend && npm run build && cd ../backend && npx prisma generate && npm run build"
   },
   "deploy": {
-    "startCommand": "cd backend && npx prisma migrate deploy && NODE_ENV=production node dist/index.js",
+    "startCommand": "cd backend && npx prisma migrate deploy && npx tsx src/scripts/seed.ts && NODE_ENV=production node dist/index.js",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }

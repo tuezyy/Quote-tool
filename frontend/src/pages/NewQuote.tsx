@@ -453,27 +453,33 @@ export default function NewQuote() {
               </div>
             </div>
 
-            {selectedCollection && selectedCollection.styles && selectedCollection.styles.length > 0 && (
+            {selectedCollection && (
               <div>
                 <label className="label">Cabinet Style *</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {selectedCollection.styles.map(style => (
-                    <div
-                      key={style.id}
-                      onClick={() => setSelectedStyle(style)}
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        selectedStyle?.id === style.id
-                          ? 'border-blue-600 bg-blue-50'
-                          : 'border-gray-200 hover:border-blue-300'
-                      }`}
-                    >
-                      <h3 className="font-semibold">{style.name}</h3>
-                      {style.description && (
-                        <p className="text-sm text-gray-600 mt-1">{style.description}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                {selectedCollection.styles && selectedCollection.styles.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {selectedCollection.styles.map(style => (
+                      <div
+                        key={style.id}
+                        onClick={() => setSelectedStyle(style)}
+                        className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                          selectedStyle?.id === style.id
+                            ? 'border-blue-600 bg-blue-50'
+                            : 'border-gray-200 hover:border-blue-300'
+                        }`}
+                      >
+                        <h3 className="font-semibold">{style.name}</h3>
+                        {style.description && (
+                          <p className="text-sm text-gray-600 mt-1">{style.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-700">
+                    No styles available for this collection. Please contact an administrator to add styles.
+                  </div>
+                )}
               </div>
             )}
           </div>
