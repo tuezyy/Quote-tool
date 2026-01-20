@@ -33,7 +33,11 @@
     "@types/node": "^20.10.6",
     "@types/pdfkit": "^0.13.4",
     "prisma": "^5.8.1",
+    "ts-node": "^10.9.2",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
+  },
+  "prisma": {
+    "seed": "ts-node ./prisma/seed.ts"
   }
 }

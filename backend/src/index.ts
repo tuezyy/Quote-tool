@@ -44,12 +44,17 @@ app.get('/api/health', (req, res) => {
 if (isProduction) {
   const frontendPath = path.join(__dirname, '../../frontend/dist');
 
+console.log('Checking for frontend at:', frontendPath);
   // Serve static files
   app.use(express.static(frontendPath));
 
   // Handle SPA routing - serve index.html for all non-API routes
   app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
+const indexPath = path.join(frontendPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+if (err) {
+      console.error('CRITICAL: index.html not found at', indexPath);
+      res.status(500).send("Frontend files are missing on the server. Check build logs.");
   });
 }
 
