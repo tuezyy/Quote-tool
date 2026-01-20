@@ -5,19 +5,24 @@
   "description": "Cabinet quoting tool for installers",
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
-    "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && npm run dev",
-    "build": "npm run build --prefix backend && npm run build --prefix frontend",
-    "build:frontend": "cd frontend && npm run build",
-    "build:backend": "cd backend && npm run build",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "build": "npm run build --prefix frontend && npm run build --prefix backend",
+    "build:frontend": "npm run build --prefix frontend",
+    "build:backend": "npm run build --prefix backend",
     "start": "node backend/dist/index.js",
-    "postinstall": "cd frontend && npm install && cd ../backend && npm install",
-    "prisma:generate": "cd backend && npm run prisma:generate",
-    "prisma:migrate": "cd backend && npm run prisma:migrate",
-    "prisma:deploy": "cd backend && npm run prisma:deploy",
-    "seed": "cd backend && npm run seed"
+    "postinstall": "npm install --prefix frontend && npm install --prefix backend",
+    "prisma:generate": "npm run prisma:generate --prefix backend",
+    "prisma:migrate": "npm run prisma:migrate --prefix backend",
+    "prisma:deploy": "npm run prisma:deploy --prefix backend",
+    "seed": "npm run seed --prefix backend"
   },
-  "keywords": ["cabinet", "quoting", "react", "express"],
+  "keywords": [
+    "cabinet",
+    "quoting",
+    "react",
+    "express"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {

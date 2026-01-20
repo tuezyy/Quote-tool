@@ -34,13 +34,16 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/users', userRoutes);
-const frontendPath = path.join(__dirname, '../../frontend/dist');
+const frontendPath = path.resolve(process.cwd(), 'frontend', 'dist');
+console.log('Static files being served from:', frontendPath);
 app.use(express.static(frontendPath));
 app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
-});
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+res.sendFile(path.join(frontendPath, 'index.html'), (err) => {
+    if (err) {
+      console.error('Error sending index.html:', err);
+      res.status(500).send('Frontend build not found. Ensure frontend/dist exists.');
+    }
+  });
 });
 
 // Health check
