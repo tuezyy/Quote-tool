@@ -29,13 +29,14 @@ interface QuoteData {
     unitPrice: number;
     total: number;
   }>;
-  subtotal: number;
+  subtotal: number;              // Wholesale cabinet cost (our cost)
+  clientCabinetPrice?: number;   // What we charge customer for cabinets
   taxRate: number;
   taxAmount: number;
-  total: number;
-  installationFee?: number;
-  miscExpenses?: number;
-  msrpTotal?: number;
+  total: number;                 // Client total = clientCabinetPrice + tax
+  installationFee?: number;      // Our labor cost (internal only - NOT shown to customer)
+  miscExpenses?: number;         // Other internal costs
+  msrpTotal?: number;            // Retail value for "you save" display
   notes?: string;
   companyInfo?: {
     name: string;
@@ -68,28 +69,35 @@ export function generateQuotePDF(quote: QuoteData): PDFKit.PDFDocument {
   const msrpTotal = quote.msrpTotal || quote.items.reduce((sum, item) =>
     sum + ((item.product.msrp || item.unitPrice) * item.quantity), 0);
 
-  const packagePrice = quote.subtotal + (quote.installationFee || 0);
-  const totalSavings = msrpTotal - quote.subtotal;
+  // Client cabinet price - what we charge customer (not our wholesale cost)
+  const clientCabinetPrice = quote.clientCabinetPrice || quote.subtotal;
+  const totalSavings = msrpTotal - clientCabinetPrice;
+
+  // Calculate quote expiration (30 days from creation)
+  const expirationDate = new Date(quote.createdAt);
+  expirationDate.setDate(expirationDate.getDate() + 30);
 
   if (quote.clientView) {
-    // CLIENT-FACING PDF - Value-focused presentation
+    // CLIENT-FACING PDF - Professional sales presentation
+    // NO installation costs shown - only cabinet pricing
+
     doc.fontSize(28).font('Helvetica-Bold').fillColor('#1e40af').text('CABINET QUOTE', { align: 'center' });
     doc.moveDown(0.3);
-    doc.fontSize(12).font('Helvetica').fillColor('#666666').text('Premium Cabinets at Exceptional Value', { align: 'center' });
+    doc.fontSize(12).font('Helvetica').fillColor('#666666').text('Premium Quality Cabinets at Exceptional Value', { align: 'center' });
     doc.moveDown(0.5);
 
     if (quote.companyInfo) {
       doc.fontSize(10).fillColor('#333333');
       doc.text(quote.companyInfo.name, { align: 'center' });
       if (quote.companyInfo.address) doc.text(quote.companyInfo.address, { align: 'center' });
-      doc.text(`${quote.companyInfo.email} • ${quote.companyInfo.phone}`, { align: 'center' });
+      doc.text(`${quote.companyInfo.email} | ${quote.companyInfo.phone}`, { align: 'center' });
       doc.moveDown(1);
     }
 
     doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#1e40af').lineWidth(2).stroke();
     doc.moveDown(1);
 
-    // Quote & Customer Info
+    // Quote & Customer Info - Side by side
     const leftColumn = 50;
     const rightColumn = 320;
     const startY = doc.y;
@@ -99,6 +107,7 @@ export function generateQuotePDF(quote: QuoteData): PDFKit.PDFDocument {
     doc.fontSize(10).font('Helvetica').fillColor('#333333');
     doc.text(`Quote #: ${quote.quoteNumber}`, leftColumn);
     doc.text(`Date: ${formatDate(quote.createdAt)}`, leftColumn);
+    doc.text(`Valid Until: ${formatDate(expirationDate)}`, leftColumn);
     doc.text(`Collection: ${quote.collection.name}`, leftColumn);
     doc.text(`Style: ${quote.style.name}`, leftColumn);
 
@@ -115,80 +124,112 @@ export function generateQuotePDF(quote: QuoteData): PDFKit.PDFDocument {
 
     doc.moveDown(2);
 
-    // Value Summary Box
+    // Value Summary Box - Highlight savings
     const boxY = doc.y;
-    doc.rect(50, boxY, 500, 80).fillColor('#f0f9ff').fill();
-    doc.rect(50, boxY, 500, 80).strokeColor('#1e40af').lineWidth(1).stroke();
+    doc.rect(50, boxY, 500, 85).fillColor('#f0f9ff').fill();
+    doc.rect(50, boxY, 500, 85).strokeColor('#1e40af').lineWidth(2).stroke();
 
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#1e40af').text('YOUR SAVINGS SUMMARY', 70, boxY + 15);
+    doc.fontSize(14).font('Helvetica-Bold').fillColor('#1e40af').text('YOUR EXCLUSIVE SAVINGS', 70, boxY + 12);
 
     doc.fontSize(11).font('Helvetica').fillColor('#666666');
-    doc.text(`Retail Market Value:`, 70, boxY + 40);
-    doc.text(`${formatCurrency(msrpTotal)}`, 250, boxY + 40, { width: 100, align: 'right', strike: true });
+    doc.text(`Retail Market Value:`, 70, boxY + 38);
+    doc.font('Helvetica').fillColor('#999999');
+    const msrpText = formatCurrency(msrpTotal);
+    doc.text(msrpText, 220, boxY + 38, { width: 100, align: 'right' });
+    // Draw strikethrough line manually
+    const msrpWidth = doc.widthOfString(msrpText);
+    doc.moveTo(320 - msrpWidth, boxY + 44).lineTo(320, boxY + 44).strokeColor('#999999').lineWidth(0.5).stroke();
 
-    doc.font('Helvetica-Bold').fillColor('#16a34a');
-    doc.text(`You Save:`, 380, boxY + 40);
-    doc.text(`${formatCurrency(totalSavings)}`, 450, boxY + 40, { width: 80, align: 'right' });
+    doc.font('Helvetica-Bold').fillColor('#16a34a').fontSize(13);
+    doc.text(`You Save:`, 360, boxY + 35);
+    doc.text(`${formatCurrency(totalSavings)}`, 440, boxY + 35, { width: 90, align: 'right' });
 
-    doc.y = boxY + 100;
+    const savingsPercent = msrpTotal > 0 ? Math.round((totalSavings / msrpTotal) * 100) : 0;
+    doc.fontSize(10).font('Helvetica').fillColor('#16a34a');
+    doc.text(`(${savingsPercent}% OFF Retail)`, 440, boxY + 55, { width: 90, align: 'right' });
 
-    // Items Table
+    doc.y = boxY + 105;
+
+    // Items Table - Clean presentation
     const tableTop = doc.y;
     doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e40af');
-    doc.text('Item', 50, tableTop, { width: 80 });
+    doc.text('Item Code', 50, tableTop, { width: 80 });
     doc.text('Description', 130, tableTop, { width: 250 });
-    doc.text('Qty', 380, tableTop, { width: 40, align: 'center' });
-    doc.text('Price', 420, tableTop, { width: 80, align: 'right' });
+    doc.text('Qty', 390, tableTop, { width: 30, align: 'center' });
+    doc.text('Price', 430, tableTop, { width: 70, align: 'right' });
 
-    doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).strokeColor('#e5e7eb').stroke();
+    doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).strokeColor('#d1d5db').stroke();
 
     let itemY = tableTop + 25;
     doc.font('Helvetica').fillColor('#333333').fontSize(9);
 
     quote.items.forEach((item) => {
-      if (itemY > 680) {
+      if (itemY > 620) {
         doc.addPage();
         itemY = 50;
       }
       doc.text(item.product.itemCode, 50, itemY, { width: 80 });
-      doc.text(item.product.description, 130, itemY, { width: 250 });
-      doc.text(item.quantity.toString(), 380, itemY, { width: 40, align: 'center' });
-      doc.text(formatCurrency(item.total), 420, itemY, { width: 80, align: 'right' });
+      doc.text(item.product.description, 130, itemY, { width: 260 });
+      doc.text(item.quantity.toString(), 390, itemY, { width: 30, align: 'center' });
+      doc.text(formatCurrency(item.total), 430, itemY, { width: 70, align: 'right' });
       itemY += 18;
     });
 
-    itemY += 15;
+    itemY += 10;
     doc.moveTo(50, itemY).lineTo(550, itemY).strokeColor('#1e40af').lineWidth(1).stroke();
     itemY += 20;
 
-    // Totals - Client View
+    // Totals - ONLY show cabinet price and tax (NO installation)
     const totalsX = 350;
-    doc.fontSize(10).font('Helvetica').fillColor('#666666');
-    doc.text('Cabinet Package:', totalsX, itemY);
-    doc.text(formatCurrency(quote.subtotal), 470, itemY, { width: 80, align: 'right' });
-    itemY += 18;
-
-    if (quote.installationFee && quote.installationFee > 0) {
-      doc.text('Professional Installation:', totalsX, itemY);
-      doc.text(formatCurrency(quote.installationFee), 470, itemY, { width: 80, align: 'right' });
-      itemY += 18;
-    }
-
-    doc.text(`Tax (${(quote.taxRate * 100).toFixed(2)}%):`, totalsX, itemY);
-    doc.text(formatCurrency(quote.taxAmount), 470, itemY, { width: 80, align: 'right' });
+    doc.fontSize(11).font('Helvetica').fillColor('#333333');
+    doc.text('Subtotal:', totalsX, itemY);
+    doc.text(formatCurrency(clientCabinetPrice), 470, itemY, { width: 80, align: 'right' });
     itemY += 20;
 
-    doc.moveTo(350, itemY).lineTo(550, itemY).strokeColor('#1e40af').stroke();
+    doc.text(`Sales Tax (${(quote.taxRate * 100).toFixed(2)}%):`, totalsX, itemY);
+    doc.text(formatCurrency(quote.taxAmount), 470, itemY, { width: 80, align: 'right' });
+    itemY += 22;
+
+    doc.moveTo(350, itemY).lineTo(550, itemY).strokeColor('#1e40af').lineWidth(2).stroke();
     itemY += 15;
 
-    // Package Total
-    doc.fontSize(14).font('Helvetica-Bold').fillColor('#1e40af');
-    doc.text('TOTAL PACKAGE:', totalsX, itemY);
-    doc.text(formatCurrency(quote.total + (quote.installationFee || 0)), 450, itemY, { width: 100, align: 'right' });
+    // Total - Prominent display
+    doc.fontSize(16).font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text('TOTAL:', totalsX, itemY);
+    doc.text(formatCurrency(quote.total), 430, itemY, { width: 120, align: 'right' });
 
-    // Footer
+    // Terms and Warranty Section
+    itemY += 50;
+    if (itemY > 650) {
+      doc.addPage();
+      itemY = 50;
+    }
+
+    doc.moveTo(50, itemY).lineTo(550, itemY).strokeColor('#e5e7eb').stroke();
+    itemY += 15;
+
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e40af').text('TERMS & CONDITIONS', 50, itemY);
+    itemY += 18;
+    doc.fontSize(8).font('Helvetica').fillColor('#666666');
+    doc.text('Payment Terms: 50% deposit required to begin order. Balance due upon delivery.', 50, itemY, { width: 500 });
+    itemY += 12;
+    doc.text(`Quote Validity: This quote is valid for 30 days from the date issued (expires ${formatDate(expirationDate)}).`, 50, itemY, { width: 500 });
+    itemY += 12;
+    doc.text('Lead Time: Standard lead time is 2-4 weeks from order confirmation. Rush orders may be available.', 50, itemY, { width: 500 });
+    itemY += 18;
+
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e40af').text('WARRANTY INFORMATION', 50, itemY);
+    itemY += 18;
+    doc.fontSize(8).font('Helvetica').fillColor('#666666');
+    doc.text('All cabinets come with a limited lifetime warranty covering defects in materials and workmanship.', 50, itemY, { width: 500 });
+    itemY += 12;
+    doc.text('Warranty does not cover normal wear and tear, misuse, or damage from improper installation.', 50, itemY, { width: 500 });
+
+    // Footer with call to action
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e40af');
+    doc.text('Ready to transform your space?', 50, 710, { align: 'center', width: 500 });
     doc.fontSize(9).font('Helvetica').fillColor('#666666');
-    doc.text('Thank you for choosing us for your cabinet needs!', 50, 730, { align: 'center', width: 500 });
+    doc.text('Contact us today to confirm your order and begin your cabinet project!', 50, 725, { align: 'center', width: 500 });
 
   } else {
     // INSTALLER VIEW - Full cost breakdown
@@ -265,55 +306,82 @@ export function generateQuotePDF(quote: QuoteData): PDFKit.PDFDocument {
     doc.moveTo(50, itemY).lineTo(550, itemY).stroke();
     itemY += 15;
 
-    // Cost Breakdown
-    const totalsX = 350;
-    doc.fontSize(10).font('Helvetica');
+    // Cost Breakdown - Two sections: OUR COSTS vs WHAT WE CHARGE
+    const totalsX = 50;
 
-    doc.text('MSRP Total:', totalsX, itemY);
-    doc.text(formatCurrency(msrpTotal), 470, itemY, { width: 80, align: 'right' });
+    // Section 1: OUR COSTS
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#dc2626');
+    doc.text('OUR COSTS (What We Pay)', totalsX, itemY);
     itemY += 18;
 
-    doc.text('Wholesale Cost (Cabinets):', totalsX, itemY);
-    doc.text(formatCurrency(quote.subtotal), 470, itemY, { width: 80, align: 'right' });
+    doc.fontSize(10).font('Helvetica').fillColor('#333333');
+    doc.text('Wholesale Cabinet Cost:', totalsX, itemY);
+    doc.text(formatCurrency(quote.subtotal), 200, itemY, { width: 80, align: 'right' });
+    itemY += 15;
+
+    doc.text('Installation Labor:', totalsX, itemY);
+    doc.text(formatCurrency(quote.installationFee || 0), 200, itemY, { width: 80, align: 'right' });
+    itemY += 15;
+
+    doc.text('Misc Expenses:', totalsX, itemY);
+    doc.text(formatCurrency(quote.miscExpenses || 0), 200, itemY, { width: 80, align: 'right' });
     itemY += 18;
-
-    if (quote.installationFee && quote.installationFee > 0) {
-      doc.text('Installation Labor:', totalsX, itemY);
-      doc.text(formatCurrency(quote.installationFee), 470, itemY, { width: 80, align: 'right' });
-      itemY += 18;
-    }
-
-    if (quote.miscExpenses && quote.miscExpenses > 0) {
-      doc.text('Misc Expenses:', totalsX, itemY);
-      doc.text(formatCurrency(quote.miscExpenses), 470, itemY, { width: 80, align: 'right' });
-      itemY += 18;
-    }
-
-    doc.moveTo(350, itemY).lineTo(550, itemY).stroke();
-    itemY += 10;
 
     const internalTotal = quote.subtotal + (quote.installationFee || 0) + (quote.miscExpenses || 0);
-    doc.font('Helvetica-Bold');
-    doc.text('INTERNAL COST (Break-even):', totalsX, itemY);
-    doc.text(formatCurrency(internalTotal), 470, itemY, { width: 80, align: 'right' });
-    itemY += 25;
+    doc.font('Helvetica-Bold').fillColor('#dc2626');
+    doc.text('BREAK-EVEN TOTAL:', totalsX, itemY);
+    doc.text(formatCurrency(internalTotal), 200, itemY, { width: 80, align: 'right' });
+    itemY += 30;
 
-    doc.text(`Tax (${(quote.taxRate * 100).toFixed(2)}%):`, totalsX, itemY);
-    doc.text(formatCurrency(quote.taxAmount), 470, itemY, { width: 80, align: 'right' });
+    // Section 2: WHAT WE CHARGE
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#16a34a');
+    doc.text('WHAT WE CHARGE (Customer Sees)', totalsX, itemY);
     itemY += 18;
 
-    doc.moveTo(350, itemY).lineTo(550, itemY).stroke();
-    itemY += 10;
+    doc.fontSize(10).font('Helvetica').fillColor('#666666');
+    doc.text('MSRP Total (Retail Value):', totalsX, itemY);
+    const msrpTextInternal = formatCurrency(msrpTotal);
+    doc.text(msrpTextInternal, 200, itemY, { width: 80, align: 'right' });
+    // Draw strikethrough line manually
+    const msrpWidthInternal = doc.widthOfString(msrpTextInternal);
+    doc.moveTo(280 - msrpWidthInternal, itemY + 5).lineTo(280, itemY + 5).strokeColor('#666666').lineWidth(0.5).stroke();
+    itemY += 15;
 
-    doc.fontSize(12);
+    doc.fillColor('#333333');
+    doc.text('Cabinet Price (Client):', totalsX, itemY);
+    doc.text(formatCurrency(clientCabinetPrice), 200, itemY, { width: 80, align: 'right' });
+    itemY += 15;
+
+    doc.text(`Tax (${(quote.taxRate * 100).toFixed(2)}%):`, totalsX, itemY);
+    doc.text(formatCurrency(quote.taxAmount), 200, itemY, { width: 80, align: 'right' });
+    itemY += 18;
+
+    doc.font('Helvetica-Bold').fillColor('#16a34a');
     doc.text('CLIENT TOTAL:', totalsX, itemY);
-    doc.text(formatCurrency(quote.total + (quote.installationFee || 0)), 450, itemY, { width: 100, align: 'right' });
-    itemY += 20;
+    doc.text(formatCurrency(quote.total), 200, itemY, { width: 80, align: 'right' });
+    itemY += 30;
 
-    const margin = (quote.total + (quote.installationFee || 0)) - internalTotal;
-    doc.fillColor('#16a34a');
-    doc.text('PROFIT MARGIN:', totalsX, itemY);
-    doc.text(formatCurrency(margin), 450, itemY, { width: 100, align: 'right' });
+    // Section 3: PROFIT SUMMARY
+    doc.moveTo(50, itemY).lineTo(300, itemY).strokeColor('#333333').stroke();
+    itemY += 15;
+
+    const profit = clientCabinetPrice - internalTotal;
+    const profitMargin = clientCabinetPrice > 0 ? (profit / clientCabinetPrice) * 100 : 0;
+    const isProfitable = profit >= 0;
+
+    doc.fontSize(12).font('Helvetica-Bold');
+    if (isProfitable) {
+      doc.fillColor('#16a34a');
+      doc.text('PROFIT:', totalsX, itemY);
+      doc.text(`${formatCurrency(profit)} (${profitMargin.toFixed(1)}%)`, 150, itemY, { width: 130, align: 'right' });
+    } else {
+      doc.fillColor('#dc2626');
+      doc.text('LOSS:', totalsX, itemY);
+      doc.text(`${formatCurrency(Math.abs(profit))} (${Math.abs(profitMargin).toFixed(1)}%)`, 150, itemY, { width: 130, align: 'right' });
+      itemY += 25;
+      doc.fontSize(10).fillColor('#dc2626');
+      doc.text('WARNING: This quote is below cost!', totalsX, itemY);
+    }
   }
 
   if (quote.notes) {

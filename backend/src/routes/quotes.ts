@@ -129,22 +129,28 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       notes,
       installationFee = 0,
       miscExpenses = 0,
-      msrpTotal = 0
+      msrpTotal = 0,
+      clientCabinetPrice  // What we charge customer (can be different from wholesale cost)
     } = req.body;
 
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Calculate totals
+    // Calculate wholesale subtotal (our cost)
     let subtotal = 0;
     for (const item of items) {
       const lineTotal = parseFloat(item.unitPrice) * item.quantity;
       subtotal += lineTotal;
     }
 
-    const taxAmount = subtotal * parseFloat(taxRate);
-    const total = subtotal + taxAmount;
+    // Client cabinet price - what we charge customer
+    // If not provided, use subtotal (no markup)
+    const finalClientPrice = clientCabinetPrice !== undefined ? parseFloat(clientCabinetPrice) : subtotal;
+
+    // Tax is calculated on what customer pays (clientCabinetPrice)
+    const taxAmount = finalClientPrice * parseFloat(taxRate);
+    const total = finalClientPrice + taxAmount;
 
     // Generate quote number
     const quoteNumber = await generateQuoteNumber();
@@ -161,13 +167,14 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         userId: req.user.userId,
         collectionId,
         styleId,
-        subtotal,
+        subtotal,                                        // Wholesale cost (what we pay)
+        clientCabinetPrice: finalClientPrice,            // What we charge customer
         taxRate: parseFloat(taxRate),
         taxAmount,
-        total,
-        installationFee: parseFloat(installationFee) || 0,
-        miscExpenses: parseFloat(miscExpenses) || 0,
-        msrpTotal: parseFloat(msrpTotal) || 0,
+        total,                                           // Client total = clientCabinetPrice + tax
+        installationFee: parseFloat(installationFee) || 0,  // Our labor cost (internal)
+        miscExpenses: parseFloat(miscExpenses) || 0,        // Other internal costs
+        msrpTotal: parseFloat(msrpTotal) || 0,              // Retail value for savings display
         notes,
         expiresAt,
         status: 'DRAFT',
@@ -308,9 +315,13 @@ router.post('/:id/duplicate', authenticate, async (req: AuthRequest, res) => {
         collectionId: original.collectionId,
         styleId: original.styleId,
         subtotal: original.subtotal,
+        clientCabinetPrice: original.clientCabinetPrice,
         taxRate: original.taxRate,
         taxAmount: original.taxAmount,
         total: original.total,
+        installationFee: original.installationFee,
+        miscExpenses: original.miscExpenses,
+        msrpTotal: original.msrpTotal,
         notes: original.notes,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         status: 'DRAFT',
@@ -544,6 +555,7 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
         total: Number(item.lineTotal)
       })),
       subtotal: Number(quote.subtotal),
+      clientCabinetPrice: Number(quote.clientCabinetPrice),
       taxRate: Number(quote.taxRate),
       taxAmount: Number(quote.taxAmount),
       total: Number(quote.total),

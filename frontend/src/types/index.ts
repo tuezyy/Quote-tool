@@ -60,10 +60,14 @@ export interface Quote {
   userId: string
   collectionId: string
   styleId: string
-  subtotal: number
+  subtotal: number              // Wholesale cabinet cost (our cost)
+  clientCabinetPrice: number    // What we charge customer for cabinets
   taxRate: number
   taxAmount: number
-  total: number
+  total: number                 // Client total = clientCabinetPrice + tax
+  installationFee: number       // Our labor cost (internal)
+  miscExpenses: number          // Other internal costs
+  msrpTotal: number             // Retail value for "you save" display
   status: 'DRAFT' | 'SENT' | 'APPROVED' | 'REJECTED'
   notes?: string
   createdAt: string

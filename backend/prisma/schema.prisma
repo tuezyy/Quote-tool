@@ -105,14 +105,16 @@ model Quote {
   userId          String      @map("user_id")
   collectionId    String      @map("collection_id")
   styleId         String      @map("style_id")
-  subtotal        Decimal     @db.Decimal(10, 2)
+  subtotal        Decimal     @db.Decimal(10, 2)  // Wholesale cabinet cost (what we pay)
   taxRate         Decimal     @map("tax_rate") @db.Decimal(5, 4)
   taxAmount       Decimal     @map("tax_amount") @db.Decimal(10, 2)
-  total           Decimal     @db.Decimal(10, 2)
-  // Installer costing fields
-  installationFee Decimal     @default(0) @map("installation_fee") @db.Decimal(10, 2)
-  miscExpenses    Decimal     @default(0) @map("misc_expenses") @db.Decimal(10, 2)
-  msrpTotal       Decimal     @default(0) @map("msrp_total") @db.Decimal(10, 2)
+  total           Decimal     @db.Decimal(10, 2)  // Client total = clientCabinetPrice + tax
+  // Client-facing pricing
+  clientCabinetPrice Decimal  @default(0) @map("client_cabinet_price") @db.Decimal(10, 2)  // What we charge customer for cabinets
+  // Installer costing fields (internal only)
+  installationFee Decimal     @default(0) @map("installation_fee") @db.Decimal(10, 2)  // Our labor cost
+  miscExpenses    Decimal     @default(0) @map("misc_expenses") @db.Decimal(10, 2)  // Other internal costs
+  msrpTotal       Decimal     @default(0) @map("msrp_total") @db.Decimal(10, 2)  // Retail value for "you save" display
   status          QuoteStatus @default(DRAFT)
   notes           String?     @db.Text
   createdAt       DateTime    @default(now()) @map("created_at")
