@@ -147,10 +147,15 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
     // Client cabinet price - what we charge customer
     // If not provided, use subtotal (no markup)
     const finalClientPrice = clientCabinetPrice !== undefined ? parseFloat(clientCabinetPrice) : subtotal;
+    const installFee = parseFloat(installationFee) || 0;
+    const miscFee = parseFloat(miscExpenses) || 0;
 
-    // Tax is calculated on what customer pays (clientCabinetPrice)
-    const taxAmount = finalClientPrice * parseFloat(taxRate);
-    const total = finalClientPrice + taxAmount;
+    // Client subtotal = cabinet price + installation + misc (all charges to customer)
+    const clientSubtotal = finalClientPrice + installFee + miscFee;
+
+    // Tax is calculated on what customer pays (cabinet + installation + misc)
+    const taxAmount = clientSubtotal * parseFloat(taxRate);
+    const total = clientSubtotal + taxAmount;
 
     // Generate quote number
     const quoteNumber = await generateQuoteNumber();
@@ -168,12 +173,12 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         collectionId,
         styleId,
         subtotal,                                        // Wholesale cost (what we pay)
-        clientCabinetPrice: finalClientPrice,            // What we charge customer
+        clientCabinetPrice: finalClientPrice,            // What we charge customer for cabinets
         taxRate: parseFloat(taxRate),
         taxAmount,
-        total,                                           // Client total = clientCabinetPrice + tax
-        installationFee: parseFloat(installationFee) || 0,  // Our labor cost (internal)
-        miscExpenses: parseFloat(miscExpenses) || 0,        // Other internal costs
+        total,                                           // Client total = subtotal + tax
+        installationFee: installFee,                     // Charged to customer
+        miscExpenses: miscFee,                           // Charged to customer
         msrpTotal: parseFloat(msrpTotal) || 0,              // Retail value for savings display
         notes,
         expiresAt,
