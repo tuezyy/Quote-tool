@@ -79,9 +79,13 @@ router.get('/', authenticate, async (req, res) => {
         totalPages: Math.ceil(total / limitNum)
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get quotes error:', error);
-    res.status(500).json({ error: 'Failed to fetch quotes' });
+    res.status(500).json({
+      error: 'Failed to fetch quotes',
+      details: error?.message || 'Unknown error',
+      code: error?.code
+    });
   }
 });
 
@@ -207,9 +211,13 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
     });
 
     res.status(201).json(quote);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Create quote error:', error);
-    res.status(500).json({ error: 'Failed to create quote' });
+    res.status(500).json({
+      error: 'Failed to create quote',
+      details: error?.message || 'Unknown error',
+      code: error?.code
+    });
   }
 });
 
