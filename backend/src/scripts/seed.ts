@@ -85,6 +85,7 @@ async function main() {
 
   const stylesByCollection: Record<string, Array<{ code: string; name: string; description: string }>> = {
     'Essential & Charm': [
+      { code: 'SW', name: 'Shaker White', description: 'Classic white shaker style' },
       { code: 'SA', name: 'Shaker Smokey Ash', description: 'Smokey ash finish shaker style' },
       { code: 'AG', name: 'Shaker Aston Green', description: 'Aston green finish shaker style' },
       { code: 'SE', name: 'Shaker Espresso', description: 'Espresso finish shaker style' },
