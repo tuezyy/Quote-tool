@@ -69,9 +69,13 @@ export function generateQuotePDF(quote: QuoteData): PDFKit.PDFDocument {
   const msrpTotal = quote.msrpTotal || quote.items.reduce((sum, item) =>
     sum + ((item.product.msrp || item.unitPrice) * item.quantity), 0);
 
-  // Client cabinet price - what we charge customer (not our wholesale cost)
+  // Client pricing - installation and misc are charges TO the customer
   const clientCabinetPrice = quote.clientCabinetPrice || quote.subtotal;
-  const totalSavings = msrpTotal - clientCabinetPrice;
+  const clientSubtotal = clientCabinetPrice + (quote.installationFee || 0) + (quote.miscExpenses || 0);
+  const totalSavings = msrpTotal - clientSubtotal;
+
+  // Profit = what we charge (before tax) - wholesale cost
+  const profit = clientSubtotal - quote.subtotal;
 
   // Calculate quote expiration (30 days from creation)
   const expirationDate = new Date(quote.createdAt);
@@ -144,9 +148,11 @@ export function generateQuotePDF(quote: QuoteData): PDFKit.PDFDocument {
     doc.text(`You Save:`, 360, boxY + 35);
     doc.text(`${formatCurrency(totalSavings)}`, 440, boxY + 35, { width: 90, align: 'right' });
 
-    const savingsPercent = msrpTotal > 0 ? Math.round((totalSavings / msrpTotal) * 100) : 0;
-    doc.fontSize(10).font('Helvetica').fillColor('#16a34a');
-    doc.text(`(${savingsPercent}% OFF Retail)`, 440, boxY + 55, { width: 90, align: 'right' });
+    if (totalSavings > 0) {
+      const savingsPercent = msrpTotal > 0 ? Math.round((totalSavings / msrpTotal) * 100) : 0;
+      doc.fontSize(10).font('Helvetica').fillColor('#16a34a');
+      doc.text(`(${savingsPercent}% OFF Retail)`, 440, boxY + 55, { width: 90, align: 'right' });
+    }
 
     doc.y = boxY + 105;
 
@@ -179,12 +185,28 @@ export function generateQuotePDF(quote: QuoteData): PDFKit.PDFDocument {
     doc.moveTo(50, itemY).lineTo(550, itemY).strokeColor('#1e40af').lineWidth(1).stroke();
     itemY += 20;
 
-    // Totals - ONLY show cabinet price and tax (NO installation)
+    // Totals - Show all charges to customer
     const totalsX = 350;
     doc.fontSize(11).font('Helvetica').fillColor('#333333');
-    doc.text('Subtotal:', totalsX, itemY);
+    doc.text('Cabinet Package:', totalsX, itemY);
     doc.text(formatCurrency(clientCabinetPrice), 470, itemY, { width: 80, align: 'right' });
-    itemY += 20;
+    itemY += 18;
+
+    if (quote.installationFee && quote.installationFee > 0) {
+      doc.text('Installation:', totalsX, itemY);
+      doc.text(formatCurrency(quote.installationFee), 470, itemY, { width: 80, align: 'right' });
+      itemY += 18;
+    }
+
+    if (quote.miscExpenses && quote.miscExpenses > 0) {
+      doc.text('Additional Services:', totalsX, itemY);
+      doc.text(formatCurrency(quote.miscExpenses), 470, itemY, { width: 80, align: 'right' });
+      itemY += 18;
+    }
+
+    doc.text('Subtotal:', totalsX, itemY);
+    doc.text(formatCurrency(clientSubtotal), 470, itemY, { width: 80, align: 'right' });
+    itemY += 18;
 
     doc.text(`Sales Tax (${(quote.taxRate * 100).toFixed(2)}%):`, totalsX, itemY);
     doc.text(formatCurrency(quote.taxAmount), 470, itemY, { width: 80, align: 'right' });
@@ -306,36 +328,27 @@ export function generateQuotePDF(quote: QuoteData): PDFKit.PDFDocument {
     doc.moveTo(50, itemY).lineTo(550, itemY).stroke();
     itemY += 15;
 
-    // Cost Breakdown - Two sections: OUR COSTS vs WHAT WE CHARGE
+    // Cost Breakdown - Two sections: OUR COST vs WHAT WE CHARGE
     const totalsX = 50;
 
-    // Section 1: OUR COSTS
+    // Section 1: OUR COST (wholesale only)
     doc.fontSize(11).font('Helvetica-Bold').fillColor('#dc2626');
-    doc.text('OUR COSTS (What We Pay)', totalsX, itemY);
+    doc.text('OUR COST (What We Pay)', totalsX, itemY);
     itemY += 18;
 
     doc.fontSize(10).font('Helvetica').fillColor('#333333');
     doc.text('Wholesale Cabinet Cost:', totalsX, itemY);
     doc.text(formatCurrency(quote.subtotal), 200, itemY, { width: 80, align: 'right' });
-    itemY += 15;
-
-    doc.text('Installation Labor:', totalsX, itemY);
-    doc.text(formatCurrency(quote.installationFee || 0), 200, itemY, { width: 80, align: 'right' });
-    itemY += 15;
-
-    doc.text('Misc Expenses:', totalsX, itemY);
-    doc.text(formatCurrency(quote.miscExpenses || 0), 200, itemY, { width: 80, align: 'right' });
     itemY += 18;
 
-    const internalTotal = quote.subtotal + (quote.installationFee || 0) + (quote.miscExpenses || 0);
     doc.font('Helvetica-Bold').fillColor('#dc2626');
-    doc.text('BREAK-EVEN TOTAL:', totalsX, itemY);
-    doc.text(formatCurrency(internalTotal), 200, itemY, { width: 80, align: 'right' });
+    doc.text('OUR TOTAL COST:', totalsX, itemY);
+    doc.text(formatCurrency(quote.subtotal), 200, itemY, { width: 80, align: 'right' });
     itemY += 30;
 
-    // Section 2: WHAT WE CHARGE
+    // Section 2: WHAT WE CHARGE (all charges to customer)
     doc.fontSize(11).font('Helvetica-Bold').fillColor('#16a34a');
-    doc.text('WHAT WE CHARGE (Customer Sees)', totalsX, itemY);
+    doc.text('WHAT WE CHARGE (Customer Pays)', totalsX, itemY);
     itemY += 18;
 
     doc.fontSize(10).font('Helvetica').fillColor('#666666');
@@ -348,8 +361,24 @@ export function generateQuotePDF(quote: QuoteData): PDFKit.PDFDocument {
     itemY += 15;
 
     doc.fillColor('#333333');
-    doc.text('Cabinet Price (Client):', totalsX, itemY);
+    doc.text('Cabinet Price:', totalsX, itemY);
     doc.text(formatCurrency(clientCabinetPrice), 200, itemY, { width: 80, align: 'right' });
+    itemY += 15;
+
+    if (quote.installationFee && quote.installationFee > 0) {
+      doc.text('Installation Fee:', totalsX, itemY);
+      doc.text(formatCurrency(quote.installationFee), 200, itemY, { width: 80, align: 'right' });
+      itemY += 15;
+    }
+
+    if (quote.miscExpenses && quote.miscExpenses > 0) {
+      doc.text('Misc/Other Fees:', totalsX, itemY);
+      doc.text(formatCurrency(quote.miscExpenses), 200, itemY, { width: 80, align: 'right' });
+      itemY += 15;
+    }
+
+    doc.text('Subtotal:', totalsX, itemY);
+    doc.text(formatCurrency(clientSubtotal), 200, itemY, { width: 80, align: 'right' });
     itemY += 15;
 
     doc.text(`Tax (${(quote.taxRate * 100).toFixed(2)}%):`, totalsX, itemY);
@@ -365,8 +394,8 @@ export function generateQuotePDF(quote: QuoteData): PDFKit.PDFDocument {
     doc.moveTo(50, itemY).lineTo(300, itemY).strokeColor('#333333').stroke();
     itemY += 15;
 
-    const profit = clientCabinetPrice - internalTotal;
-    const profitMargin = clientCabinetPrice > 0 ? (profit / clientCabinetPrice) * 100 : 0;
+    // Profit = what we charge (before tax) - wholesale cost
+    const profitMargin = clientSubtotal > 0 ? (profit / clientSubtotal) * 100 : 0;
     const isProfitable = profit >= 0;
 
     doc.fontSize(12).font('Helvetica-Bold');

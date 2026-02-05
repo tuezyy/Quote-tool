@@ -154,7 +154,7 @@ export default function NewQuote() {
 
   // === CALCULATION FUNCTIONS ===
 
-  // Wholesale cost = what we pay for cabinets
+  // Wholesale cost = what we pay for cabinets (OUR ONLY COST)
   const calculateWholesaleCost = () => {
     return quoteItems.reduce((sum, item) => sum + item.total, 0);
   };
@@ -164,35 +164,41 @@ export default function NewQuote() {
     return quoteItems.reduce((sum, item) => sum + (Number(item.product.msrp) * item.quantity), 0);
   };
 
-  // Our total cost (break-even) = wholesale + installation + misc
+  // Our cost = wholesale only (installation & misc are charges TO the customer)
   const calculateInternalCost = () => {
-    return calculateWholesaleCost() + installationFee + miscExpenses;
+    return calculateWholesaleCost();
   };
 
-  // Tax on client cabinet price
+  // Subtotal to customer = cabinet price + installation + misc
+  const calculateClientSubtotal = () => {
+    return clientCabinetPrice + installationFee + miscExpenses;
+  };
+
+  // Tax on client subtotal (cabinet + installation + misc)
   const calculateTax = () => {
-    return clientCabinetPrice * taxRate;
+    return calculateClientSubtotal() * taxRate;
   };
 
-  // Client grand total = cabinet price + tax
+  // Client grand total = subtotal + tax
   const calculateClientTotal = () => {
-    return clientCabinetPrice + calculateTax();
+    return calculateClientSubtotal() + calculateTax();
   };
 
-  // Profit = client cabinet price - our internal costs
+  // Profit = what customer pays (before tax) - our wholesale cost
   const calculateProfit = () => {
-    return clientCabinetPrice - calculateInternalCost();
+    return calculateClientSubtotal() - calculateWholesaleCost();
   };
 
-  // Profit margin percentage
+  // Profit margin percentage (based on what we charge)
   const calculateProfitMargin = () => {
-    if (clientCabinetPrice === 0) return 0;
-    return (calculateProfit() / clientCabinetPrice) * 100;
+    const subtotal = calculateClientSubtotal();
+    if (subtotal === 0) return 0;
+    return (calculateProfit() / subtotal) * 100;
   };
 
-  // Customer savings (MSRP - client price)
+  // Customer savings (MSRP - client subtotal)
   const calculateCustomerSavings = () => {
-    return calculateTotalMsrp() - clientCabinetPrice;
+    return calculateTotalMsrp() - calculateClientSubtotal();
   };
 
   const isQuotingBelowCost = () => {
@@ -683,24 +689,42 @@ export default function NewQuote() {
               <h3 className="text-xl font-bold text-blue-800 mb-4">What Your Customer Will See</h3>
 
               {/* Savings Highlight */}
-              <div className="bg-green-100 border border-green-300 rounded-lg p-4 mb-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="text-sm text-green-700">Retail Value</div>
-                    <div className="text-lg line-through text-gray-500">{formatPrice(calculateTotalMsrp())}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-green-700 font-semibold">You Save!</div>
-                    <div className="text-2xl font-bold text-green-600">{formatPrice(calculateCustomerSavings())}</div>
+              {calculateCustomerSavings() > 0 && (
+                <div className="bg-green-100 border border-green-300 rounded-lg p-4 mb-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-sm text-green-700">Retail Value</div>
+                      <div className="text-lg line-through text-gray-500">{formatPrice(calculateTotalMsrp())}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-green-700 font-semibold">You Save!</div>
+                      <div className="text-2xl font-bold text-green-600">{formatPrice(calculateCustomerSavings())}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Client Totals */}
               <div className="space-y-3">
                 <div className="flex justify-between text-lg">
                   <span>Cabinet Package:</span>
                   <span className="font-semibold">{formatPrice(clientCabinetPrice)}</span>
+                </div>
+                {installationFee > 0 && (
+                  <div className="flex justify-between text-lg">
+                    <span>Installation:</span>
+                    <span className="font-semibold">{formatPrice(installationFee)}</span>
+                  </div>
+                )}
+                {miscExpenses > 0 && (
+                  <div className="flex justify-between text-lg">
+                    <span>Additional Services:</span>
+                    <span className="font-semibold">{formatPrice(miscExpenses)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-lg pt-2 border-t border-blue-200">
+                  <span>Subtotal:</span>
+                  <span className="font-semibold">{formatPrice(calculateClientSubtotal())}</span>
                 </div>
                 <div className="flex justify-between text-lg">
                   <span>Tax ({(taxRate * 100).toFixed(2)}%):</span>
@@ -717,45 +741,20 @@ export default function NewQuote() {
               {/* INSTALLER VIEW - OUR COSTS SECTION */}
               <div className="card bg-red-50 border-red-200">
                 <h3 className="text-lg font-bold text-red-800 mb-4 flex items-center gap-2">
-                  <span className="text-2xl">💰</span> OUR COSTS (What It Costs Us)
+                  <span className="text-2xl">💰</span> OUR COST (What We Pay)
                 </h3>
 
                 <div className="space-y-3">
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-lg">
                     <span className="text-gray-700">Wholesale Cabinet Cost:</span>
                     <span className="font-semibold">{formatPrice(calculateWholesaleCost())}</span>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <label className="text-gray-700">Installation Labor:</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={installationFee}
-                      onChange={(e) => setInstallationFee(parseFloat(e.target.value) || 0)}
-                      className="input w-32 text-right"
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <label className="text-gray-700">Misc Expenses:</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={miscExpenses}
-                      onChange={(e) => setMiscExpenses(parseFloat(e.target.value) || 0)}
-                      className="input w-32 text-right"
-                      placeholder="0.00"
-                    />
-                  </div>
-
                   <div className="flex justify-between text-xl font-bold pt-3 border-t-2 border-red-300">
-                    <span className="text-red-800">BREAK-EVEN (Total Cost):</span>
+                    <span className="text-red-800">OUR TOTAL COST:</span>
                     <span className="text-red-700">{formatPrice(calculateInternalCost())}</span>
                   </div>
+                  <p className="text-sm text-red-600 italic">This is what we pay for the cabinets. Everything below this is profit.</p>
                 </div>
               </div>
 
@@ -766,72 +765,124 @@ export default function NewQuote() {
                 </h3>
 
                 <div className="space-y-4">
-                  {/* Pricing Method Toggle */}
-                  <div className="flex items-center gap-4 mb-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={useMarkup}
-                        onChange={() => setUseMarkup(true)}
-                        className="w-4 h-4"
-                      />
-                      <span>Use Markup %</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={!useMarkup}
-                        onChange={() => setUseMarkup(false)}
-                        className="w-4 h-4"
-                      />
-                      <span>Set Custom Price</span>
-                    </label>
-                  </div>
+                  {/* Cabinet Pricing */}
+                  <div className="bg-white p-3 rounded-lg border border-green-200">
+                    <div className="text-sm font-semibold text-green-700 mb-2">Cabinet Pricing</div>
+                    {/* Pricing Method Toggle */}
+                    <div className="flex items-center gap-4 mb-3">
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <input
+                          type="radio"
+                          checked={useMarkup}
+                          onChange={() => setUseMarkup(true)}
+                          className="w-4 h-4"
+                        />
+                        <span>Use Markup %</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-sm">
+                        <input
+                          type="radio"
+                          checked={!useMarkup}
+                          onChange={() => setUseMarkup(false)}
+                          className="w-4 h-4"
+                        />
+                        <span>Set Custom Price</span>
+                      </label>
+                    </div>
 
-                  {useMarkup ? (
-                    <div className="flex justify-between items-center">
-                      <label className="text-gray-700">Markup on Wholesale:</label>
-                      <div className="flex items-center gap-2">
+                    {useMarkup ? (
+                      <div className="flex justify-between items-center">
+                        <label className="text-gray-700">Markup on Wholesale:</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            max="500"
+                            value={markupPercent}
+                            onChange={(e) => setMarkupPercent(parseFloat(e.target.value) || 0)}
+                            className="input w-20 text-right"
+                          />
+                          <span className="text-gray-600">%</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center">
+                        <label className="text-gray-700">Cabinet Price:</label>
                         <input
                           type="number"
                           min="0"
-                          max="500"
-                          value={markupPercent}
-                          onChange={(e) => setMarkupPercent(parseFloat(e.target.value) || 0)}
-                          className="input w-20 text-right"
+                          step="0.01"
+                          value={clientCabinetPrice}
+                          onChange={(e) => setClientCabinetPrice(parseFloat(e.target.value) || 0)}
+                          className="input w-40 text-right"
                         />
-                        <span className="text-gray-600">%</span>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-center">
-                      <label className="text-gray-700">Client Cabinet Price:</label>
+                    )}
+                  </div>
+
+                  {/* Additional Charges */}
+                  <div className="bg-white p-3 rounded-lg border border-green-200">
+                    <div className="text-sm font-semibold text-green-700 mb-2">Additional Charges to Customer</div>
+
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-gray-700">Installation Fee:</label>
                       <input
                         type="number"
                         min="0"
                         step="0.01"
-                        value={clientCabinetPrice}
-                        onChange={(e) => setClientCabinetPrice(parseFloat(e.target.value) || 0)}
-                        className="input w-40 text-right"
+                        value={installationFee}
+                        onChange={(e) => setInstallationFee(parseFloat(e.target.value) || 0)}
+                        className="input w-32 text-right"
+                        placeholder="0.00"
                       />
                     </div>
-                  )}
 
+                    <div className="flex justify-between items-center">
+                      <label className="text-gray-700">Misc/Other Fees:</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={miscExpenses}
+                        onChange={(e) => setMiscExpenses(parseFloat(e.target.value) || 0)}
+                        className="input w-32 text-right"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Totals */}
                   <div className="pt-3 border-t border-green-200 space-y-2">
                     <div className="flex justify-between">
                       <span>MSRP (Retail Value):</span>
                       <span className="line-through text-gray-500">{formatPrice(calculateTotalMsrp())}</span>
                     </div>
-                    <div className="flex justify-between text-lg">
-                      <span>Cabinet Price to Client:</span>
+                    <div className="flex justify-between">
+                      <span>Cabinet Price:</span>
                       <span className="font-semibold">{formatPrice(clientCabinetPrice)}</span>
+                    </div>
+                    {installationFee > 0 && (
+                      <div className="flex justify-between">
+                        <span>Installation Fee:</span>
+                        <span className="font-semibold">{formatPrice(installationFee)}</span>
+                      </div>
+                    )}
+                    {miscExpenses > 0 && (
+                      <div className="flex justify-between">
+                        <span>Misc/Other Fees:</span>
+                        <span className="font-semibold">{formatPrice(miscExpenses)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-lg pt-2 border-t border-green-200">
+                      <span>Subtotal:</span>
+                      <span className="font-semibold">{formatPrice(calculateClientSubtotal())}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Tax ({(taxRate * 100).toFixed(2)}%):</span>
                       <span className="font-semibold">{formatPrice(calculateTax())}</span>
                     </div>
                     <div className="flex justify-between text-xl font-bold pt-2 border-t border-green-300">
-                      <span className="text-green-800">CLIENT PAYS:</span>
+                      <span className="text-green-800">CLIENT TOTAL:</span>
                       <span className="text-green-700">{formatPrice(calculateClientTotal())}</span>
                     </div>
                   </div>
@@ -847,12 +898,12 @@ export default function NewQuote() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-3 bg-white rounded-lg">
-                    <div className="text-sm text-gray-600">Client Pays</div>
-                    <div className="text-xl font-bold text-green-600">{formatPrice(calculateClientTotal())}</div>
+                    <div className="text-sm text-gray-600">We Charge (before tax)</div>
+                    <div className="text-xl font-bold text-green-600">{formatPrice(calculateClientSubtotal())}</div>
                   </div>
                   <div className="text-center p-3 bg-white rounded-lg">
-                    <div className="text-sm text-gray-600">Our Costs</div>
-                    <div className="text-xl font-bold text-red-600">{formatPrice(calculateInternalCost())}</div>
+                    <div className="text-sm text-gray-600">Our Wholesale Cost</div>
+                    <div className="text-xl font-bold text-red-600">{formatPrice(calculateWholesaleCost())}</div>
                   </div>
                 </div>
 
