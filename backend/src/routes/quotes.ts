@@ -6,6 +6,36 @@ import { generateQuotePDF } from '../utils/pdfGenerator';
 
 const router = Router();
 
+// Helper function to recalculate quote totals
+// Tax is applied to what customer pays (clientCabinetPrice + installationFee + miscExpenses)
+const recalculateQuoteTotals = async (quoteId: string) => {
+  const quote = await prisma.quote.findUnique({
+    where: { id: quoteId },
+    include: { items: true }
+  });
+
+  if (!quote) return null;
+
+  // Wholesale subtotal (our cost) - sum of all item line totals
+  const subtotal = quote.items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
+
+  // Client charges - what customer pays
+  const clientCabinetPrice = Number(quote.clientCabinetPrice) || subtotal;
+  const installationFee = Number(quote.installationFee) || 0;
+  const miscExpenses = Number(quote.miscExpenses) || 0;
+  const clientSubtotal = clientCabinetPrice + installationFee + miscExpenses;
+
+  // Tax is calculated on what customer pays, not on wholesale cost
+  const taxRate = Number(quote.taxRate);
+  const taxAmount = clientSubtotal * taxRate;
+  const total = clientSubtotal + taxAmount;
+
+  return prisma.quote.update({
+    where: { id: quoteId },
+    data: { subtotal, taxAmount, total }
+  });
+};
+
 // Generate quote number
 const generateQuoteNumber = async (): Promise<string> => {
   const year = new Date().getFullYear();
@@ -225,33 +255,67 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    const { items, taxRate, notes, ...quoteData } = req.body;
+    const {
+      items,
+      taxRate,
+      notes,
+      clientCabinetPrice,
+      installationFee,
+      miscExpenses,
+      ...otherData
+    } = req.body;
 
-    // If items are being updated, recalculate totals
-    if (items) {
-      let subtotal = 0;
-      for (const item of items) {
-        const lineTotal = parseFloat(item.unitPrice) * item.quantity;
-        subtotal += lineTotal;
-      }
-
-      const rate = taxRate ? parseFloat(taxRate) : 0;
-      const taxAmount = subtotal * rate;
-      const total = subtotal + taxAmount;
-
-      quoteData.subtotal = subtotal;
-      quoteData.taxRate = rate;
-      quoteData.taxAmount = taxAmount;
-      quoteData.total = total;
-    }
+    // Build update data
+    const updateData: any = { ...otherData };
 
     if (notes !== undefined) {
-      quoteData.notes = notes;
+      updateData.notes = notes;
     }
 
-    const quote = await prisma.quote.update({
+    if (taxRate !== undefined) {
+      updateData.taxRate = parseFloat(taxRate);
+    }
+
+    // Handle pricing fields - convert to numbers
+    if (clientCabinetPrice !== undefined) {
+      updateData.clientCabinetPrice = parseFloat(clientCabinetPrice);
+    }
+    if (installationFee !== undefined) {
+      updateData.installationFee = parseFloat(installationFee);
+    }
+    if (miscExpenses !== undefined) {
+      updateData.miscExpenses = parseFloat(miscExpenses);
+    }
+
+    // First, update the base fields
+    await prisma.quote.update({
       where: { id },
-      data: quoteData,
+      data: updateData
+    });
+
+    // If items are being updated, update them first
+    if (items && Array.isArray(items)) {
+      // Delete existing items and recreate
+      await prisma.quoteItem.deleteMany({ where: { quoteId: id } });
+      await prisma.quoteItem.createMany({
+        data: items.map((item: any) => ({
+          quoteId: id,
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: parseFloat(item.unitPrice),
+          lineTotal: parseFloat(item.unitPrice) * item.quantity,
+          roomName: item.roomName,
+          notes: item.notes
+        }))
+      });
+    }
+
+    // Recalculate totals (tax on what customer pays)
+    await recalculateQuoteTotals(id);
+
+    // Fetch and return updated quote
+    const quote = await prisma.quote.findUnique({
+      where: { id },
       include: {
         customer: true,
         collection: true,
@@ -405,22 +469,8 @@ router.post('/:quoteId/items', authenticate, async (req, res) => {
       }
     });
 
-    // Recalculate quote totals
-    const quote = await prisma.quote.findUnique({
-      where: { id: quoteId },
-      include: { items: true }
-    });
-
-    if (quote) {
-      const subtotal = quote.items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
-      const taxAmount = subtotal * Number(quote.taxRate);
-      const total = subtotal + taxAmount;
-
-      await prisma.quote.update({
-        where: { id: quoteId },
-        data: { subtotal, taxAmount, total }
-      });
-    }
+    // Recalculate quote totals (tax on client charges, not wholesale)
+    await recalculateQuoteTotals(quoteId);
 
     res.status(201).json(item);
   } catch (error) {
@@ -450,22 +500,8 @@ router.put('/:quoteId/items/:itemId', authenticate, async (req, res) => {
       }
     });
 
-    // Recalculate quote totals
-    const quote = await prisma.quote.findUnique({
-      where: { id: quoteId },
-      include: { items: true }
-    });
-
-    if (quote) {
-      const subtotal = quote.items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
-      const taxAmount = subtotal * Number(quote.taxRate);
-      const total = subtotal + taxAmount;
-
-      await prisma.quote.update({
-        where: { id: quoteId },
-        data: { subtotal, taxAmount, total }
-      });
-    }
+    // Recalculate quote totals (tax on client charges, not wholesale)
+    await recalculateQuoteTotals(quoteId);
 
     res.json(item);
   } catch (error) {
@@ -480,22 +516,8 @@ router.delete('/:quoteId/items/:itemId', authenticate, async (req, res) => {
 
     await prisma.quoteItem.delete({ where: { id: itemId } });
 
-    // Recalculate quote totals
-    const quote = await prisma.quote.findUnique({
-      where: { id: quoteId },
-      include: { items: true }
-    });
-
-    if (quote) {
-      const subtotal = quote.items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
-      const taxAmount = subtotal * Number(quote.taxRate);
-      const total = subtotal + taxAmount;
-
-      await prisma.quote.update({
-        where: { id: quoteId },
-        data: { subtotal, taxAmount, total }
-      });
-    }
+    // Recalculate quote totals (tax on client charges, not wholesale)
+    await recalculateQuoteTotals(quoteId);
 
     res.json({ message: 'Quote item deleted successfully' });
   } catch (error) {

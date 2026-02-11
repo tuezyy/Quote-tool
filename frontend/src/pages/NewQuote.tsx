@@ -196,9 +196,28 @@ export default function NewQuote() {
     return (calculateProfit() / subtotal) * 100;
   };
 
-  // Customer savings (MSRP - client subtotal)
+  // Calculate display MSRP for customer (includes installation/misc at market rates)
+  // This represents what competitors would charge
+  const calculateDisplayMsrp = () => {
+    const cabinetMsrp = calculateTotalMsrp();
+    const installationMarketRate = installationFee * 1.5; // What competitors charge
+    const miscMarketRate = miscExpenses * 1.5;
+    const fullMarketMsrp = cabinetMsrp + installationMarketRate + miscMarketRate;
+    // Ensure MSRP is at least 15% higher than our price
+    const minMsrp = calculateClientSubtotal() * 1.15;
+    return Math.max(fullMarketMsrp, minMsrp);
+  };
+
+  // Customer savings (Display MSRP - client subtotal) - always positive
   const calculateCustomerSavings = () => {
-    return calculateTotalMsrp() - calculateClientSubtotal();
+    return calculateDisplayMsrp() - calculateClientSubtotal();
+  };
+
+  // Savings percentage for display
+  const calculateSavingsPercent = () => {
+    const msrp = calculateDisplayMsrp();
+    if (msrp === 0) return 0;
+    return Math.round((calculateCustomerSavings() / msrp) * 100);
   };
 
   const isQuotingBelowCost = () => {
@@ -688,42 +707,26 @@ export default function NewQuote() {
             <div className="card bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
               <h3 className="text-xl font-bold text-blue-800 mb-4">What Your Customer Will See</h3>
 
-              {/* Savings Highlight */}
-              {calculateCustomerSavings() > 0 && (
-                <div className="bg-green-100 border border-green-300 rounded-lg p-4 mb-6">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="text-sm text-green-700">Retail Value</div>
-                      <div className="text-lg line-through text-gray-500">{formatPrice(calculateTotalMsrp())}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm text-green-700 font-semibold">You Save!</div>
-                      <div className="text-2xl font-bold text-green-600">{formatPrice(calculateCustomerSavings())}</div>
+              {/* Savings Highlight - Always shown with positive savings */}
+              <div className="bg-green-100 border border-green-300 rounded-lg p-4 mb-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="text-sm text-green-700">Retail Market Value</div>
+                    <div className="text-lg line-through text-gray-500">{formatPrice(calculateDisplayMsrp())}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-green-700 font-semibold">You Save!</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {formatPrice(calculateCustomerSavings())} ({calculateSavingsPercent()}% OFF)
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Client Totals */}
+              {/* Client Totals - Bundled pricing, no installation/misc breakdown */}
               <div className="space-y-3">
                 <div className="flex justify-between text-lg">
                   <span>Cabinet Package:</span>
-                  <span className="font-semibold">{formatPrice(clientCabinetPrice)}</span>
-                </div>
-                {installationFee > 0 && (
-                  <div className="flex justify-between text-lg">
-                    <span>Installation:</span>
-                    <span className="font-semibold">{formatPrice(installationFee)}</span>
-                  </div>
-                )}
-                {miscExpenses > 0 && (
-                  <div className="flex justify-between text-lg">
-                    <span>Additional Services:</span>
-                    <span className="font-semibold">{formatPrice(miscExpenses)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-lg pt-2 border-t border-blue-200">
-                  <span>Subtotal:</span>
                   <span className="font-semibold">{formatPrice(calculateClientSubtotal())}</span>
                 </div>
                 <div className="flex justify-between text-lg">
@@ -731,10 +734,14 @@ export default function NewQuote() {
                   <span className="font-semibold">{formatPrice(calculateTax())}</span>
                 </div>
                 <div className="flex justify-between text-2xl font-bold pt-3 border-t-2 border-blue-300">
-                  <span>Total Investment:</span>
+                  <span>Total:</span>
                   <span className="text-blue-700">{formatPrice(calculateClientTotal())}</span>
                 </div>
               </div>
+
+              <p className="text-sm text-blue-600 mt-4 italic">
+                Customer sees bundled "Cabinet Package" pricing - no breakdown of installation or additional fees.
+              </p>
             </div>
           ) : (
             <>

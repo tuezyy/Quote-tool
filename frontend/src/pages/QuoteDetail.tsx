@@ -325,48 +325,50 @@ export default function QuoteDetail() {
         const installFee = Number(quote.installationFee || 0);
         const miscFee = Number(quote.miscExpenses || 0);
         const clientSubtotal = cabinetPrice + installFee + miscFee;
-        const msrp = Number(quote.msrpTotal) || wholesaleCost * 1.5;
-        const savings = msrp - clientSubtotal;
+        const baseCabinetMsrp = Number(quote.msrpTotal) || wholesaleCost * 1.5;
+
+        // For customer display: Calculate "market value" MSRP that represents what
+        // competitors (other GCs) would charge. This includes:
+        // 1. Full cabinet MSRP (retail price)
+        // 2. Installation at market rates (competitors charge ~50% more)
+        // 3. Additional services at market rates
+        const installationMarketRate = installFee * 1.5;
+        const miscMarketRate = miscFee * 1.5;
+        const fullMarketMsrp = baseCabinetMsrp + installationMarketRate + miscMarketRate;
+
+        // Ensure MSRP is always at least 15% higher than what we charge
+        const displayMsrp = Math.max(fullMarketMsrp, clientSubtotal * 1.15);
+        const displaySavings = displayMsrp - clientSubtotal;
+        const savingsPercent = displayMsrp > 0 ? Math.round((displaySavings / displayMsrp) * 100) : 0;
+
         const profit = clientSubtotal - wholesaleCost;
         const profitMargin = clientSubtotal > 0 ? (profit / clientSubtotal) * 100 : 0;
         const isProfitable = profit >= 0;
 
         return clientView ? (
-          // CLIENT VIEW - Clean, sales-focused presentation
+          // CLIENT VIEW - Clean, sales-focused presentation (bundled pricing)
           <div className="card max-w-lg ml-auto bg-blue-50 border-blue-200">
             <h3 className="text-lg font-bold text-blue-800 mb-4">Your Quote Summary</h3>
             <div className="space-y-3">
-              {savings > 0 && (
-                <>
-                  <div className="flex justify-between text-gray-500">
-                    <span>Retail Market Value:</span>
-                    <span className="line-through">{formatPrice(msrp)}</span>
-                  </div>
-                  <div className="flex justify-between text-green-600 font-semibold text-lg">
-                    <span>Your Savings:</span>
-                    <span>{formatPrice(savings)}</span>
-                  </div>
-                </>
-              )}
+              {/* Always show savings (guaranteed positive with market rate MSRP) */}
+              <div className="bg-green-100 border border-green-300 rounded-lg p-3">
+                <div className="flex justify-between text-gray-500 text-sm">
+                  <span>Retail Market Value:</span>
+                  <span className="line-through">{formatPrice(displayMsrp)}</span>
+                </div>
+                <div className="flex justify-between text-green-600 font-bold text-lg mt-1">
+                  <span>You Save:</span>
+                  <span>{formatPrice(displaySavings)} ({savingsPercent}% OFF)</span>
+                </div>
+              </div>
+              <p className="text-xs text-blue-500 italic mt-2">
+                Bundled pricing includes all services
+              </p>
+
               <div className="border-t border-blue-200 pt-3 space-y-2">
+                {/* Bundled price - no breakdown of installation/misc */}
                 <div className="flex justify-between text-lg">
                   <span>Cabinet Package:</span>
-                  <span className="font-semibold">{formatPrice(cabinetPrice)}</span>
-                </div>
-                {installFee > 0 && (
-                  <div className="flex justify-between text-lg">
-                    <span>Installation:</span>
-                    <span className="font-semibold">{formatPrice(installFee)}</span>
-                  </div>
-                )}
-                {miscFee > 0 && (
-                  <div className="flex justify-between text-lg">
-                    <span>Additional Services:</span>
-                    <span className="font-semibold">{formatPrice(miscFee)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-lg pt-2 border-t border-blue-200">
-                  <span>Subtotal:</span>
                   <span className="font-semibold">{formatPrice(clientSubtotal)}</span>
                 </div>
                 <div className="flex justify-between text-lg">
@@ -405,7 +407,7 @@ export default function QuoteDetail() {
               <div className="space-y-2">
                 <div className="flex justify-between text-gray-500">
                   <span>MSRP Total:</span>
-                  <span className="line-through">{formatPrice(msrp)}</span>
+                  <span className="line-through">{formatPrice(baseCabinetMsrp)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-700">Cabinet Price:</span>
