@@ -47,7 +47,7 @@ export default function NewQuote() {
   const [miscExpenses, setMiscExpenses] = useState(0);
   const [clientCabinetPrice, setClientCabinetPrice] = useState(0);
   const [useMarkup, setUseMarkup] = useState(true);
-  const [markupPercent, setMarkupPercent] = useState(40); // Default 40% markup
+  const [markupPercent, setMarkupPercent] = useState(0); // Default 0% markup
   const [clientPreview, setClientPreview] = useState(false);
 
   useEffect(() => {
