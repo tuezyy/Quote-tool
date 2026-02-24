@@ -57,7 +57,7 @@ router.get('/business', (req, res) => {
 // Used by the self-service quote builder
 // MARKUP_FACTOR applied to MSRP to get customer price
 // ─────────────────────────────────────────────
-const MARKUP_FACTOR = 0.85; // Customer pays 85% of MSRP
+const MARKUP_FACTOR = 1.2; // Customer pays 120% of MSRP
 
 router.get('/products', async (req, res) => {
   try {

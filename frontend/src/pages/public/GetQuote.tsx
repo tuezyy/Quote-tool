@@ -17,7 +17,7 @@ const KITCHEN_SIZES = [
 ]
 const COLLECTION_NAMES = ['Essential & Charm','Classical & Double Shaker','Slim Shaker','Frameless High Gloss','Builder Grade',"I'm Not Sure Yet"]
 const TIMELINES = ['As soon as possible','Within 1 month','1–3 months','3–6 months','Just researching']
-const INSTALL_ESTIMATE = { min: 2800, max: 4000 }
+const INSTALL_PER_CABINET = { min: 100, max: 125 }
 
 // ─── Shared contact form ──────────────────────────────────────────────────────
 interface ContactForm { firstName: string; lastName: string; email: string; phone: string; address: string; city: string }
@@ -198,8 +198,11 @@ function BuilderPath({ onSuccess }: { onSuccess: (f: any) => void }) {
   }
 
   const cartTotal = cart.reduce((sum, i) => sum + i.customerPrice * i.qty, 0)
-  const grandMin = cartTotal + INSTALL_ESTIMATE.min
-  const grandMax = cartTotal + INSTALL_ESTIMATE.max
+  const totalCabinets = cart.reduce((sum, i) => sum + i.qty, 0)
+  const installMin = totalCabinets * INSTALL_PER_CABINET.min
+  const installMax = totalCabinets * INSTALL_PER_CABINET.max
+  const grandMin = cartTotal + installMin
+  const grandMax = cartTotal + installMax
 
   const submit = async () => {
     setSubmitting(true); setError('')
@@ -213,7 +216,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (f: any) => void }) {
         quoteType: 'detailed',
         items: cart.map(i => ({ productId: i.id, itemCode: i.itemCode, description: i.description, qty: i.qty, customerPrice: i.customerPrice })),
       })
-      onSuccess({ ...contact, cart, cartTotal })
+      onSuccess({ ...contact, cart, cartTotal, totalCabinets })
     } catch { setError('Something went wrong. Call us at (833) 201-7849.') }
     finally { setSubmitting(false) }
   }
@@ -329,7 +332,10 @@ function BuilderPath({ onSuccess }: { onSuccess: (f: any) => void }) {
 
           {cart.length > 0 && (
             <div className="mt-4 border-t border-stone-200 pt-4 flex items-center justify-between">
-              <div className="text-sm text-stone-500">{cart.reduce((s,i)=>s+i.qty,0)} items · <span className="font-bold text-stone-900">${cartTotal.toLocaleString('en-US',{maximumFractionDigits:0})} cabinets</span></div>
+              <div className="text-sm text-stone-500">
+                {totalCabinets} cabinet{totalCabinets !== 1 ? 's' : ''} ·{' '}
+                <span className="font-bold text-stone-900">${grandMin.toLocaleString()} – ${grandMax.toLocaleString()} est. total</span>
+              </div>
               <button onClick={() => setStep(4)}
                 className="bg-wood-600 hover:bg-wood-700 text-white font-bold px-5 py-2 rounded-xl text-sm transition-colors">
                 Review Quote →
@@ -377,8 +383,10 @@ function BuilderPath({ onSuccess }: { onSuccess: (f: any) => void }) {
                 <span className="font-semibold text-stone-900">${cartTotal.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-stone-500">Installation estimate</span>
-                <span className="text-stone-600">${INSTALL_ESTIMATE.min.toLocaleString()} – ${INSTALL_ESTIMATE.max.toLocaleString()}</span>
+                <span className="text-stone-500">
+                  Installation ({totalCabinets} cabinet{totalCabinets !== 1 ? 's' : ''} × ${INSTALL_PER_CABINET.min}–${INSTALL_PER_CABINET.max})
+                </span>
+                <span className="text-stone-600">${installMin.toLocaleString()} – ${installMax.toLocaleString()}</span>
               </div>
               <div className="flex justify-between font-bold text-base border-t border-stone-200 pt-2 mt-2">
                 <span className="text-stone-900">Estimated Total</span>
@@ -458,7 +466,7 @@ export default function GetQuote() {
               <div className="flex justify-between border-t pt-2">
                 <span className="text-stone-500">Estimated Total (with install)</span>
                 <span className="font-bold text-wood-700">
-                  ${(submitData.cartTotal + INSTALL_ESTIMATE.min).toLocaleString()} – ${(submitData.cartTotal + INSTALL_ESTIMATE.max).toLocaleString()}
+                  ${(submitData.cartTotal + (submitData.totalCabinets * INSTALL_PER_CABINET.min)).toLocaleString()} – ${(submitData.cartTotal + (submitData.totalCabinets * INSTALL_PER_CABINET.max)).toLocaleString()}
                 </span>
               </div>
             </div>
