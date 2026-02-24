@@ -52,6 +52,109 @@ router.get('/business', (req, res) => {
 });
 
 // ─────────────────────────────────────────────
+// GET /api/public/products
+// Public product catalog — shows MSRP only (no cost data)
+// Used by the self-service quote builder
+// MARKUP_FACTOR applied to MSRP to get customer price
+// ─────────────────────────────────────────────
+const MARKUP_FACTOR = 0.85; // Customer pays 85% of MSRP
+
+router.get('/products', async (req, res) => {
+  try {
+    const {
+      collectionId,
+      category,
+      search,
+      page = '1',
+      limit = '48',
+    } = req.query;
+
+    const where: any = {};
+    if (collectionId) where.collectionId = collectionId as string;
+    if (category) where.category = category as string;
+    if (search) {
+      where.OR = [
+        { itemCode: { contains: search as string, mode: 'insensitive' } },
+        { description: { contains: search as string, mode: 'insensitive' } },
+      ];
+    }
+
+    const pageNum = parseInt(page as string);
+    const limitNum = Math.min(parseInt(limit as string), 100);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        select: {
+          id: true,
+          itemCode: true,
+          description: true,
+          category: true,
+          width: true,
+          height: true,
+          depth: true,
+          msrp: true,
+          collectionId: true,
+          collection: { select: { name: true } },
+        },
+        orderBy: [{ category: 'asc' }, { itemCode: 'asc' }],
+        skip,
+        take: limitNum,
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    const formatted = products.map(p => ({
+      id: p.id,
+      itemCode: p.itemCode,
+      description: p.description,
+      category: p.category,
+      width: p.width,
+      height: p.height,
+      depth: p.depth,
+      msrp: Number(p.msrp),
+      // Customer price = MSRP × markup factor
+      customerPrice: Math.round(Number(p.msrp) * MARKUP_FACTOR * 100) / 100,
+      collectionId: p.collectionId,
+      collectionName: p.collection.name,
+    }));
+
+    res.json({
+      products: formatted,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load products' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// GET /api/public/categories
+// Distinct categories for a collection
+// ─────────────────────────────────────────────
+router.get('/categories', async (req, res) => {
+  try {
+    const { collectionId } = req.query;
+    const where: any = {};
+    if (collectionId) where.collectionId = collectionId as string;
+
+    const cats = await prisma.product.findMany({
+      where,
+      select: { category: true },
+      distinct: ['category'],
+      orderBy: { category: 'asc' },
+    });
+
+    res.json(cats.map(c => c.category));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load categories' });
+  }
+});
+
+// ─────────────────────────────────────────────
 // GET /api/public/collections
 // All collections with metadata — AI readable
 // ─────────────────────────────────────────────
@@ -185,6 +288,8 @@ router.post(
         firstName, lastName, email, phone,
         address, city, kitchenSize, collection,
         timeline, notes,
+        items, // optional: [{productId, itemCode, description, qty, customerPrice}]
+        quoteType, // 'estimate' | 'detailed'
       } = req.body;
 
       // Upsert customer
@@ -208,12 +313,16 @@ router.post(
       }
 
       // Build notes string
+      const itemsTotal = items?.reduce((sum: number, i: any) => sum + (i.customerPrice * i.qty), 0) ?? 0;
+      const itemLines = items?.map((i: any) => `  - ${i.itemCode} x${i.qty}: $${(i.customerPrice * i.qty).toFixed(2)} (${i.description})`).join('\n') ?? '';
+
       const quoteNotes = [
-        `WEBSITE QUOTE REQUEST`,
+        `WEBSITE QUOTE REQUEST (${quoteType === 'detailed' ? 'DETAILED BUILDER' : 'ESTIMATE'})`,
         `Kitchen Size: ${kitchenSize}`,
         `Collection Preference: ${collection}`,
         `Timeline: ${timeline}`,
-        notes ? `Additional Notes: ${notes}` : '',
+        items?.length ? `\nSELECTED ITEMS (${items.length} products):\n${itemLines}\nItems Subtotal: $${itemsTotal.toFixed(2)}` : '',
+        notes ? `\nAdditional Notes: ${notes}` : '',
         `Submitted: ${new Date().toISOString()}`,
         `Source: cabinetsoforlando.com/get-a-quote`,
       ].filter(Boolean).join('\n');
