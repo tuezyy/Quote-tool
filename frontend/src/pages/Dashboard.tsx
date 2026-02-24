@@ -12,7 +12,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Link
-          to="/quotes/new"
+          to="/admin/quotes/new"
           className="card hover:shadow-lg transition-shadow duration-200 cursor-pointer"
         >
           <div className="flex items-center">
@@ -45,7 +45,7 @@ export default function Dashboard() {
         </Link>
 
         <Link
-          to="/quotes"
+          to="/admin/quotes"
           className="card hover:shadow-lg transition-shadow duration-200 cursor-pointer"
         >
           <div className="flex items-center">
@@ -74,7 +74,7 @@ export default function Dashboard() {
         </Link>
 
         <Link
-          to="/customers"
+          to="/admin/customers"
           className="card hover:shadow-lg transition-shadow duration-200 cursor-pointer"
         >
           <div className="flex items-center">

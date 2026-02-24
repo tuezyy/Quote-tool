@@ -20,6 +20,33 @@ export default {
           900: '#1e3a8a',
           950: '#172554',
         },
+        wood: {
+          50: '#fdf8f0',
+          100: '#faefd8',
+          200: '#f4dba8',
+          300: '#ecc170',
+          400: '#e3a03e',
+          500: '#d4882a',
+          600: '#b96b1e',
+          700: '#93511b',
+          800: '#78421d',
+          900: '#63381b',
+          950: '#371c0b',
+        },
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.6s ease-out',
+        'slide-up': 'slideUp 0.6s ease-out',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(24px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
     },
   },

@@ -7,7 +7,7 @@ export default function Layout() {
 
   const handleLogout = () => {
     logout()
-    navigate('/login')
+    navigate('/')
   }
 
   return (
@@ -24,32 +24,32 @@ export default function Layout() {
               </div>
               <div className="hidden sm:ml-8 sm:flex sm:space-x-8">
                 <Link
-                  to="/"
+                  to="/admin"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-primary-600"
                 >
                   Dashboard
                 </Link>
                 <Link
-                  to="/quotes/new"
+                  to="/admin/quotes/new"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-500 hover:text-gray-900"
                 >
                   New Quote
                 </Link>
                 <Link
-                  to="/quotes"
+                  to="/admin/quotes"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-500 hover:text-gray-900"
                 >
                   Quotes
                 </Link>
                 <Link
-                  to="/customers"
+                  to="/admin/customers"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-500 hover:text-gray-900"
                 >
                   Customers
                 </Link>
                 {user?.role === 'ADMIN' && (
                   <Link
-                    to="/settings"
+                    to="/admin/settings"
                     className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-500 hover:text-gray-900"
                   >
                     Settings

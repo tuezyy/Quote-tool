@@ -14,6 +14,7 @@ import customersRoutes from './routes/customers';
 import quotesRoutes from './routes/quotes';
 import settingsRoutes from './routes/settings';
 import usersRoutes from './routes/users';
+import publicRoutes from './routes/public';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -31,6 +32,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // API Routes
+app.use('/api/public', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/collections', collectionsRoutes);
 app.use('/api/styles', stylesRoutes);
