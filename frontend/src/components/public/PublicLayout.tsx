@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
+import ChatWidget from './ChatWidget'
 
 const NAV_LINKS = [
   { label: 'Home', to: '/' },
@@ -129,6 +130,8 @@ export default function PublicLayout() {
       <main className="flex-1">
         <Outlet />
       </main>
+
+      <ChatWidget />
 
       {/* Footer */}
       <footer className="bg-stone-950 text-stone-400">
