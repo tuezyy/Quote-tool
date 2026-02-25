@@ -209,8 +209,9 @@ export default function Home() {
       </section>
 
       {/* SERVICES & PRICING */}
-      <section className="py-20 bg-white" id="services">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative py-20 bg-white overflow-hidden" id="services">
+        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "url('/images/kitchen-1.jpeg')", backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-stone-900 mb-4">
               Transparent Pricing
@@ -250,8 +251,9 @@ export default function Home() {
       </section>
 
       {/* COLLECTIONS PREVIEW */}
-      <section className="py-20 bg-stone-50" id="collections">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative py-20 bg-stone-50 overflow-hidden" id="collections">
+        <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "url('/images/shaker-white.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-stone-900 mb-4">
               5 Premium Collections
@@ -295,8 +297,9 @@ export default function Home() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative py-20 bg-white overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "url('/images/after-2.jpeg')", backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-stone-900 mb-4">How It Works</h2>
             <p className="text-stone-500 text-lg">Simple. Fast. Professional.</p>
@@ -339,8 +342,9 @@ export default function Home() {
       </section>
 
       {/* SERVICE AREAS */}
-      <section className="py-16 bg-stone-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative py-16 bg-stone-50 overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "url('/images/hero-bg.png')", backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-2xl md:text-3xl font-bold text-stone-900 mb-3">
               Serving All of Central Florida
@@ -361,8 +365,9 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <section className="py-20 bg-white" id="faq">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative py-20 bg-white overflow-hidden" id="faq">
+        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "url('/images/kitchen-3.jpeg')", backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-stone-900 mb-3">Frequently Asked Questions</h2>
             <p className="text-stone-500">Everything you need to know before getting started.</p>
@@ -430,8 +435,9 @@ export default function Home() {
       </section>
 
       {/* FINAL CTA */}
-      <section className="py-20 bg-navy-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="relative py-20 bg-navy-900 overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "url('/images/after-3.jpeg')", backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Ready to Transform Your Kitchen?
           </h2>
