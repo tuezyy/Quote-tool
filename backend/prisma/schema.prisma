@@ -31,6 +31,7 @@ model Collection {
   id          String    @id @default(uuid())
   name        String    @unique
   description String?
+  imageUrl    String?   @map("image_url")
   createdAt   DateTime  @default(now()) @map("created_at")
 
   styles   Style[]
@@ -46,6 +47,7 @@ model Style {
   code         String
   name         String
   description  String?
+  imageUrl     String?  @map("image_url")
   createdAt    DateTime @default(now()) @map("created_at")
 
   collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)

@@ -13,11 +13,13 @@ const LAYOUT_LF: Record<string, Record<string, number>> = {
 }
 
 const PRICE_PER_LF: Record<string, { min: number; max: number }> = {
-  'Builder Grade':             { min: 320, max: 400 },
-  'Essential & Charm':         { min: 390, max: 490 },
-  'Classical & Double Shaker': { min: 450, max: 560 },
-  'Slim Shaker':               { min: 480, max: 600 },
-  'Frameless High Gloss':      { min: 580, max: 720 },
+  'Builder Grade':      { min: 280, max: 360 },
+  'Essential Collection': { min: 320, max: 400 },
+  'Charm Collection':   { min: 390, max: 490 },
+  'Double Shaker':      { min: 450, max: 560 },
+  'Classic Style':      { min: 450, max: 560 },
+  'Slim Shaker':        { min: 480, max: 600 },
+  'Frameless European': { min: 580, max: 720 },
 }
 
 function calcEstimate(layout: string, size: string, collection: string, replacing: boolean, installOnly: boolean) {
@@ -46,12 +48,14 @@ const SIZES = [
   { value: 'large',  label: 'Large',  sub: '250+ sq ft' },
 ]
 const COLLECTIONS = [
-  { name: 'Builder Grade',             desc: 'Durable, contractor-grade value',    img: '/images/shaker-white.jpg' },
-  { name: 'Essential & Charm',         desc: 'Classic shaker, warm finishes',       img: '/images/shaker-grey.jpg',         tag: 'Most Popular' },
-  { name: 'Classical & Double Shaker', desc: 'Raised panels, timeless elegance',    img: '/images/shaker-treasure-chest.jpg' },
-  { name: 'Slim Shaker',               desc: 'Modern slim rails, clean lines',       img: '/images/shaker-aston-green.jpg' },
-  { name: 'Frameless High Gloss',      desc: 'European style, bold high-gloss',     img: '/images/shaker-iron-black.jpg',    dark: true },
-  { name: 'Not Sure Yet',              desc: 'Our team will help you choose',        img: '/images/shaker-smokey-ash.jpg' },
+  { name: 'Essential Collection', desc: 'Shaker White, Gray & Espresso',          img: '/images/styles/essential-shaker-white.jpg' },
+  { name: 'Charm Collection',     desc: '8 colors — navy, greens, wood tones',    img: '/images/styles/charm-rustic-wood.jpg', tag: 'Most Popular' },
+  { name: 'Slim Shaker',         desc: 'Modern slim rail, 5 finishes',            img: '/images/styles/slim-dove-white.jpg' },
+  { name: 'Double Shaker',       desc: 'Double-rail profile, 2 finishes',         img: '/images/styles/double-dove-white.jpg' },
+  { name: 'Classic Style',       desc: 'Raised panel, traditional elegance',      img: '/images/styles/classic-aspen-white.jpg' },
+  { name: 'Frameless European',  desc: 'Glass, gloss, matte & wood-look',         img: '/images/styles/frameless-crystal-glass.jpg' },
+  { name: 'Builder Grade',       desc: 'Best value, contractor-grade',            img: '/images/styles/builder-floral-white.jpg' },
+  { name: 'Not Sure Yet',        desc: 'Our team will help you choose',           img: '/images/styles/charm-smokey-ash.jpg' },
 ]
 const TIMELINES = ['As soon as possible', 'Within 1 month', '1–3 months', '3–6 months', 'Just researching']
 
@@ -368,7 +372,7 @@ const KITCHEN_SIZES = [
   { label: 'Installation Only',value: 'install_only',  priceRange: '$2,800–$4,000' },
   { label: 'Not Sure Yet',     value: 'unknown',       priceRange: "We will figure it out together" },
 ]
-const COLLECTION_NAMES = ['Essential & Charm','Classical & Double Shaker','Slim Shaker','Frameless High Gloss','Builder Grade','Not Sure Yet']
+const COLLECTION_NAMES = ['Essential Collection','Charm Collection','Slim Shaker','Double Shaker','Classic Style','Frameless European','Builder Grade','Not Sure Yet']
 
 function EstimatePath({ onSuccess }: { onSuccess: (d: any) => void }) {
   const [step, setStep]           = useState<1|2>(1)

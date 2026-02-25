@@ -59,84 +59,93 @@ async function main() {
 
   console.log('✅ Default settings created');
 
-  // Create sample collections for demo purposes
-  console.log('Creating sample collections...');
+  // Create collections — matches real Milestone Cabinetry catalog
+  console.log('Creating collections...');
 
   const collections = [
-    { name: 'Essential & Charm', description: 'Classic shaker style cabinets in various finishes' },
-    { name: 'Classical & Double Shaker', description: 'Traditional double shaker door designs' },
-    { name: 'Slim Shaker', description: 'Modern slim profile shaker cabinets' },
-    { name: 'Frameless High Gloss', description: 'Contemporary frameless high gloss cabinets' },
-    { name: 'Builder Grade', description: 'Economical builder grade cabinet options' }
+    { name: 'Essential Collection',   description: 'Classic shaker style in White, Gray & Espresso. Clean lines, solid construction.',        imageUrl: '/images/styles/essential-shaker-white.jpg' },
+    { name: 'Charm Collection',       description: 'Shaker style in 8 bold colors and wood tones. The most versatile collection.',            imageUrl: '/images/styles/charm-rustic-wood.jpg' },
+    { name: 'Slim Shaker',            description: 'Modern slim-rail shaker profile in 5 contemporary finishes.',                             imageUrl: '/images/styles/slim-dove-white.jpg' },
+    { name: 'Double Shaker',          description: 'Classic double-rail shaker door in Smokey Grey and Dove White.',                          imageUrl: '/images/styles/double-dove-white.jpg' },
+    { name: 'Classic Style',          description: 'Traditional raised-panel doors in Charleston White, Aspen White and Aspen Charcoal Gray.', imageUrl: '/images/styles/classic-aspen-white.jpg' },
+    { name: 'Frameless European',     description: 'Sleek European frameless construction — glass, gloss, matte and wood-look finishes.',      imageUrl: '/images/styles/frameless-crystal-glass.jpg' },
+    { name: 'Builder Grade',          description: 'Contractor-grade shaker in Floral White, Espresso and Gray. Best price point.',           imageUrl: '/images/styles/builder-floral-white.jpg' },
   ];
 
-  for (const collection of collections) {
+  for (const col of collections) {
     await prisma.collection.upsert({
-      where: { name: collection.name },
-      update: { description: collection.description },
-      create: collection
+      where:  { name: col.name },
+      update: { description: col.description, imageUrl: col.imageUrl },
+      create: col
     });
   }
 
-  console.log('✅ Sample collections created');
+  console.log('✅ Collections created');
 
-  // Create sample styles for all collections
+  // Create styles — every door style from Milestone catalog with image URLs
   const allCollections = await prisma.collection.findMany();
 
-  const stylesByCollection: Record<string, Array<{ code: string; name: string; description: string }>> = {
-    'Essential & Charm': [
-      { code: 'SW', name: 'Shaker White', description: 'Classic white shaker style' },
-      { code: 'SA', name: 'Shaker Smokey Ash', description: 'Smokey ash finish shaker style' },
-      { code: 'AG', name: 'Shaker Aston Green', description: 'Aston green finish shaker style' },
-      { code: 'SE', name: 'Shaker Espresso', description: 'Espresso finish shaker style' },
-      { code: 'NB', name: 'Shaker Navy Blue', description: 'Navy blue finish shaker style' },
-      { code: 'IB', name: 'Shaker Iron Black', description: 'Iron black finish shaker style' }
+  const stylesByCollection: Record<string, Array<{ code: string; name: string; description: string; imageUrl: string }>> = {
+    'Essential Collection': [
+      { code: 'SW',  name: 'Shaker White',   description: 'Bright, classic white shaker',   imageUrl: '/images/styles/essential-shaker-white.jpg' },
+      { code: 'GR',  name: 'Shaker Gray',    description: 'Warm gray shaker finish',         imageUrl: '/images/styles/essential-shaker-gray.jpg' },
+      { code: 'SE',  name: 'Shaker Espresso',description: 'Rich espresso shaker finish',     imageUrl: '/images/styles/essential-shaker-espresso.jpg' },
     ],
-    'Classical & Double Shaker': [
-      { code: 'DW', name: 'Double Shaker White', description: 'Classic white double shaker' },
-      { code: 'DG', name: 'Double Shaker Gray', description: 'Gray double shaker finish' },
-      { code: 'DN', name: 'Double Shaker Natural', description: 'Natural wood double shaker' }
+    'Charm Collection': [
+      { code: 'NB',  name: 'Navy Blue',      description: 'Deep navy shaker',                imageUrl: '/images/styles/charm-navy-blue.jpg' },
+      { code: 'IB',  name: 'Iron Black',     description: 'Matte iron black shaker',         imageUrl: '/images/styles/charm-iron-black.jpg' },
+      { code: 'TC',  name: 'Treasure Chest', description: 'Warm brown wood-tone shaker',     imageUrl: '/images/styles/charm-treasure-chest.jpg' },
+      { code: 'AG',  name: 'Aston Green',    description: 'Earthy sage-green shaker',        imageUrl: '/images/styles/charm-aston-green.jpg' },
+      { code: 'SA',  name: 'Smokey Ash',     description: 'Cool smokey ash shaker',          imageUrl: '/images/styles/charm-smokey-ash.jpg' },
+      { code: 'LG',  name: 'Luna Grey',      description: 'Soft luna grey shaker',           imageUrl: '/images/styles/charm-luna-grey.jpg' },
+      { code: 'RW',  name: 'Rustic Wood',    description: 'Warm rustic wood-grain shaker',   imageUrl: '/images/styles/charm-rustic-wood.jpg' },
+      { code: 'SB',  name: 'Sage Breeze',    description: 'Light sage green shaker',         imageUrl: '/images/styles/charm-sage-breeze.jpg' },
     ],
     'Slim Shaker': [
-      { code: 'SW', name: 'Slim White', description: 'Modern slim profile white' },
-      { code: 'SG', name: 'Slim Gray', description: 'Modern slim profile gray' },
-      { code: 'SB', name: 'Slim Black', description: 'Modern slim profile black' }
+      { code: 'SDW', name: 'Slim Dove White', description: 'Slim rail dove white',           imageUrl: '/images/styles/slim-dove-white.jpg' },
+      { code: 'SWO', name: 'Slim White Oak',  description: 'Slim rail white oak wood-look',  imageUrl: '/images/styles/slim-white-oak.jpg' },
+      { code: 'SAG', name: 'Slim Aston Green',description: 'Slim rail aston green',          imageUrl: '/images/styles/slim-aston-green.jpg' },
+      { code: 'SAO', name: 'Slim Amber Oak',  description: 'Slim rail warm amber oak',       imageUrl: '/images/styles/slim-amber-oak.jpg' },
+      { code: 'SIB', name: 'Slim Iron Black', description: 'Slim rail matte iron black',     imageUrl: '/images/styles/slim-iron-black.jpg' },
     ],
-    'Frameless High Gloss': [
-      { code: 'HGW', name: 'High Gloss White', description: 'Brilliant high gloss white' },
-      { code: 'HGG', name: 'High Gloss Gray', description: 'Sleek high gloss gray' },
-      { code: 'HGB', name: 'High Gloss Black', description: 'Bold high gloss black' }
+    'Double Shaker': [
+      { code: 'DSG', name: 'Double Smokey Grey', description: 'Double shaker smokey grey',   imageUrl: '/images/styles/double-smokey-grey.jpg' },
+      { code: 'DDW', name: 'Double Dove White',  description: 'Double shaker dove white',    imageUrl: '/images/styles/double-dove-white.jpg' },
+    ],
+    'Classic Style': [
+      { code: 'CW',  name: 'Charleston White',      description: 'Classic Charleston white raised panel',     imageUrl: '/images/styles/classic-charleston-white.jpg' },
+      { code: 'AW',  name: 'Aspen White',            description: 'Traditional Aspen white raised panel',      imageUrl: '/images/styles/classic-aspen-white.jpg' },
+      { code: 'AC',  name: 'Aspen Charcoal Gray',    description: 'Elegant charcoal gray raised panel',        imageUrl: '/images/styles/classic-aspen-charcoal-gray.jpg' },
+    ],
+    'Frameless European': [
+      { code: 'HW',  name: 'High Gloss White',   description: 'High gloss white frameless',       imageUrl: '/images/styles/frameless-high-gloss-white.jpg' },
+      { code: 'HG',  name: 'High Gloss Gray',    description: 'High gloss gray frameless',         imageUrl: '/images/styles/frameless-high-gloss-gray.jpg' },
+      { code: 'CG',  name: 'Crystal Glass',      description: 'Frosted crystal glass frameless',   imageUrl: '/images/styles/frameless-crystal-glass.jpg' },
+      { code: 'MG',  name: 'Midnight Glass',     description: 'Dark tinted midnight glass',         imageUrl: '/images/styles/frameless-midnight-glass.jpg' },
+      { code: 'MB',  name: 'Matt Black',         description: 'Matte black flat-panel frameless',   imageUrl: '/images/styles/frameless-matt-black.jpg' },
+      { code: 'MI',  name: 'Matt Ivory',         description: 'Matte ivory flat-panel frameless',   imageUrl: '/images/styles/frameless-matt-ivory.jpg' },
+      { code: 'OB',  name: 'Oak Blonde',         description: 'Light blonde oak wood-look',         imageUrl: '/images/styles/frameless-oak-blonde.jpg' },
+      { code: 'OS',  name: 'Oak Shade',          description: 'Mid-tone shaded oak wood-look',      imageUrl: '/images/styles/frameless-oak-shade.jpg' },
     ],
     'Builder Grade': [
-      { code: 'BGW', name: 'Builder White', description: 'Economical white finish' },
-      { code: 'BGO', name: 'Builder Oak', description: 'Economical oak finish' },
-      { code: 'BGM', name: 'Builder Maple', description: 'Economical maple finish' }
-    ]
+      { code: 'FW',  name: 'Floral White',    description: 'Clean white builder-grade shaker',    imageUrl: '/images/styles/builder-floral-white.jpg' },
+      { code: 'FE',  name: 'Floral Espresso', description: 'Espresso builder-grade shaker',        imageUrl: '/images/styles/builder-floral-espresso.jpg' },
+      { code: 'FG',  name: 'Floral Gray',     description: 'Gray builder-grade shaker',            imageUrl: '/images/styles/builder-floral-gray.jpg' },
+    ],
   };
 
   for (const collection of allCollections) {
     const styles = stylesByCollection[collection.name] || [];
-
     for (const style of styles) {
       await prisma.style.upsert({
-        where: {
-          collectionId_code: {
-            collectionId: collection.id,
-            code: style.code
-          }
-        },
-        update: { name: style.name, description: style.description },
-        create: {
-          collectionId: collection.id,
-          code: style.code,
-          name: style.name,
-          description: style.description
-        }
+        where:  { collectionId_code: { collectionId: collection.id, code: style.code } },
+        update: { name: style.name, description: style.description, imageUrl: style.imageUrl },
+        create: { collectionId: collection.id, ...style }
       });
     }
   }
 
-  console.log('✅ Sample styles created for all collections');
+  console.log('✅ Styles created for all collections');
 
   // Create sample products for all collections
   console.log('Creating sample products...');
