@@ -75,18 +75,6 @@ function LayoutIcon({ value }: { value: string }) {
   }
 }
 
-// ─── Cabinet door watermark ────────────────────────────────────────────────────
-function CabinetDoor({ dark = false }: { dark?: boolean }) {
-  const s = dark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.1)'
-  return (
-    <svg viewBox="0 0 120 140" className="absolute inset-0 w-full h-full" fill="none" aria-hidden>
-      <rect x="10" y="10" width="100" height="120" rx="3" stroke={s} strokeWidth="1.5"/>
-      <rect x="18" y="18" width="84" height="104" rx="2" stroke={s} strokeWidth="1.5"/>
-      <circle cx="60" cy="70" r="5" fill={s}/>
-    </svg>
-  )
-}
-
 // ─── Spinner ───────────────────────────────────────────────────────────────────
 function Spinner() {
   return <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
