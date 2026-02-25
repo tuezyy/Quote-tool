@@ -236,9 +236,9 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
             {COLLECTIONS.map(col => {
               return (
                 <button key={col.name} onClick={() => { setCollection(col.name); setStep('estimate') }}
-                  className={`group relative overflow-hidden rounded-2xl h-40 text-left transition-all hover:shadow-lg hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-wood-500 ${collection===col.name?'ring-2 ring-wood-500':''}`}>
-                  <img src={col.img} alt={col.name} className="absolute inset-0 w-full h-full object-cover"/>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"/>
+                  style={{ backgroundImage: `url('${col.img}')` }}
+                  className={`group relative overflow-hidden rounded-2xl h-40 text-left transition-all hover:shadow-lg hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-wood-500 bg-cover bg-center bg-stone-800 ${collection===col.name?'ring-2 ring-wood-500':''}`}>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/10"/>
                   {col.tag && <div className="absolute top-3 right-3 bg-wood-500 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">{col.tag}</div>}
                   <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
                     <div className="font-bold text-sm leading-tight text-white">{col.name}</div>

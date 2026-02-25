@@ -34,10 +34,32 @@ export default function PublicLayout() {
       <nav className="bg-white border-b border-stone-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <Link to="/" className="flex items-center flex-shrink-0">
+            {/* Logo — centered on mobile, left on desktop */}
+            <Link to="/" className="hidden md:flex items-center flex-shrink-0">
               <img src="/images/logo.png" alt="Cabinets of Orlando" className="h-10 w-auto" />
             </Link>
+            {/* Mobile: 3-col layout to center logo */}
+            <div className="flex md:hidden items-center justify-between w-full">
+              <div className="w-10" />
+              <Link to="/" className="flex items-center">
+                <img src="/images/logo.png" alt="Cabinets of Orlando" className="h-10 w-auto" />
+              </Link>
+              <button
+                className="p-2 rounded text-stone-600"
+                onClick={() => setMenuOpen(!menuOpen)}
+                aria-label="Toggle menu"
+              >
+                {menuOpen ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                )}
+              </button>
+            </div>
 
             {/* Desktop nav */}
             <div className="hidden md:flex items-center gap-1">
@@ -75,22 +97,6 @@ export default function PublicLayout() {
               </a>
             </div>
 
-            {/* Mobile hamburger */}
-            <button
-              className="md:hidden p-2 rounded text-stone-600"
-              onClick={() => setMenuOpen(!menuOpen)}
-              aria-label="Toggle menu"
-            >
-              {menuOpen ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
           </div>
         </div>
 
