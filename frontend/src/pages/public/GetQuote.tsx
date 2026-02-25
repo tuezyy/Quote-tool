@@ -46,12 +46,12 @@ const SIZES = [
   { value: 'large',  label: 'Large',  sub: '250+ sq ft' },
 ]
 const COLLECTIONS = [
-  { name: 'Builder Grade',             desc: 'Durable, contractor-grade value',    bg: 'from-amber-100 to-amber-400' },
-  { name: 'Essential & Charm',         desc: 'Classic shaker, warm finishes',       bg: 'from-amber-50 to-amber-200', tag: 'Most Popular' },
-  { name: 'Classical & Double Shaker', desc: 'Raised panels, timeless elegance',    bg: 'from-stone-100 to-stone-400' },
-  { name: 'Slim Shaker',               desc: 'Modern slim rails, clean lines',       bg: 'from-slate-50 to-slate-300' },
-  { name: 'Frameless High Gloss',      desc: 'European style, bold high-gloss',     bg: 'from-slate-600 to-slate-900', dark: true },
-  { name: 'Not Sure Yet',              desc: 'Our team will help you choose',        bg: 'from-stone-100 to-stone-300' },
+  { name: 'Builder Grade',             desc: 'Durable, contractor-grade value',    img: '/images/shaker-white.jpg' },
+  { name: 'Essential & Charm',         desc: 'Classic shaker, warm finishes',       img: '/images/shaker-grey.jpg',         tag: 'Most Popular' },
+  { name: 'Classical & Double Shaker', desc: 'Raised panels, timeless elegance',    img: '/images/shaker-treasure-chest.jpg' },
+  { name: 'Slim Shaker',               desc: 'Modern slim rails, clean lines',       img: '/images/shaker-aston-green.jpg' },
+  { name: 'Frameless High Gloss',      desc: 'European style, bold high-gloss',     img: '/images/shaker-iron-black.jpg',    dark: true },
+  { name: 'Not Sure Yet',              desc: 'Our team will help you choose',        img: '/images/shaker-smokey-ash.jpg' },
 ]
 const TIMELINES = ['As soon as possible', 'Within 1 month', '1–3 months', '3–6 months', 'Just researching']
 
@@ -246,15 +246,15 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
             {COLLECTIONS.map(col => {
-              const isDark = col.dark ?? false
               return (
                 <button key={col.name} onClick={() => { setCollection(col.name); setStep('estimate') }}
-                  className={`group relative overflow-hidden rounded-2xl h-40 text-left transition-all hover:shadow-lg hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-wood-500 bg-gradient-to-br ${col.bg}`}>
-                  <CabinetDoor dark={isDark}/>
-                  {col.tag && <div className="absolute top-3 right-3 bg-wood-600 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">{col.tag}</div>}
+                  className={`group relative overflow-hidden rounded-2xl h-40 text-left transition-all hover:shadow-lg hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-wood-500 ${collection===col.name?'ring-2 ring-wood-500':''}`}>
+                  <img src={col.img} alt={col.name} className="absolute inset-0 w-full h-full object-cover"/>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"/>
+                  {col.tag && <div className="absolute top-3 right-3 bg-wood-500 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">{col.tag}</div>}
                   <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
-                    <div className={`font-bold text-sm leading-tight ${isDark?'text-white':'text-stone-900'}`}>{col.name}</div>
-                    <div className={`text-xs mt-0.5 ${isDark?'text-slate-300':'text-stone-500'}`}>{col.desc}</div>
+                    <div className="font-bold text-sm leading-tight text-white">{col.name}</div>
+                    <div className="text-xs mt-0.5 text-stone-300">{col.desc}</div>
                   </div>
                 </button>
               )
@@ -518,7 +518,7 @@ export default function GetQuote() {
 
   return (
     <div className="min-h-screen bg-stone-50">
-      <section className="bg-stone-950 py-12">
+      <section className="bg-navy-900 py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <nav className="text-xs text-stone-500 mb-4 flex items-center gap-2">
             <Link to="/" className="hover:text-stone-300">Home</Link>

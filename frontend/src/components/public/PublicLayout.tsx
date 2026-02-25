@@ -23,7 +23,7 @@ export default function PublicLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Top bar */}
-      <div className="bg-stone-900 text-stone-300 text-xs py-2 px-4 text-center">
+      <div className="bg-navy-900 text-stone-300 text-xs py-2 px-4 text-center">
         Licensed & Insured · Orlando & Surrounding Areas · Available 24/7 for Calls ·{' '}
         <a href="tel:+18332017849" className="text-wood-400 hover:text-wood-300 font-medium">
           (833) 201-7849
@@ -35,14 +35,8 @@ export default function PublicLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-8 h-8 bg-stone-900 rounded flex items-center justify-center">
-                <span className="text-wood-400 font-bold text-sm">CO</span>
-              </div>
-              <div className="leading-tight">
-                <div className="text-stone-900 font-bold text-sm">Cabinets of Orlando</div>
-                <div className="text-stone-400 text-xs">Central Florida's Cabinet Experts</div>
-              </div>
+            <Link to="/" className="flex items-center flex-shrink-0">
+              <img src="/images/logo.png" alt="Cabinets of Orlando" className="h-10 w-auto" />
             </Link>
 
             {/* Desktop nav */}
@@ -134,16 +128,13 @@ export default function PublicLayout() {
       <ChatWidget />
 
       {/* Footer */}
-      <footer className="bg-stone-950 text-stone-400">
+      <footer className="bg-navy-900 text-stone-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
             {/* Brand */}
             <div className="md:col-span-1">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-stone-800 rounded flex items-center justify-center">
-                  <span className="text-wood-400 font-bold text-sm">CO</span>
-                </div>
-                <span className="text-white font-bold">Cabinets of Orlando</span>
+              <div className="mb-4">
+                <img src="/images/logo.png" alt="Cabinets of Orlando" className="h-10 w-auto brightness-0 invert" />
               </div>
               <p className="text-sm leading-relaxed text-stone-500">
                 Central Florida's premier cabinet installer. Licensed, insured, and committed to transforming your kitchen.
@@ -218,7 +209,7 @@ export default function PublicLayout() {
             </div>
           </div>
 
-          <div className="border-t border-stone-800 mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-stone-600">
+          <div className="border-t border-navy-800 mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-stone-600">
             <span>© {new Date().getFullYear()} Cabinets of Orlando. All rights reserved.</span>
             <div className="flex gap-4">
               <span>Licensed & Insured in Florida</span>

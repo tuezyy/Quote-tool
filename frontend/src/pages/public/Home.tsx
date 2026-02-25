@@ -150,16 +150,16 @@ export default function Home() {
       })}} />
 
       {/* HERO */}
-      <section className="relative bg-stone-950 overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-gradient-to-br from-wood-600 via-transparent to-transparent" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-wood-500 rounded-full filter blur-3xl opacity-20" />
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <img src="/images/hero-bg.png" alt="Beautiful kitchen by Cabinets of Orlando" className="w-full h-full object-cover object-center" />
+          <div className="absolute inset-0 bg-navy-900/70" />
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-wood-600/20 border border-wood-600/30 rounded-full px-4 py-1.5 mb-6">
+            <div className="inline-flex items-center gap-2 bg-wood-500/20 border border-wood-500/30 rounded-full px-4 py-1.5 mb-6">
               <div className="w-2 h-2 bg-wood-400 rounded-full animate-pulse" />
-              <span className="text-wood-400 text-xs font-semibold tracking-wide uppercase">
+              <span className="text-wood-300 text-xs font-semibold tracking-wide uppercase">
                 Central Florida's Cabinet Experts
               </span>
             </div>
@@ -167,20 +167,20 @@ export default function Home() {
               Orlando's Premier{' '}
               <span className="text-wood-400">Cabinet Installer</span>
             </h1>
-            <p className="text-lg md:text-xl text-stone-400 max-w-2xl mb-8 leading-relaxed">
+            <p className="text-lg md:text-xl text-stone-300 max-w-2xl mb-8 leading-relaxed">
               Professional cabinet installation in Orlando and surrounding areas. We install IKEA, Home Depot, Lowe's, and custom cabinets — kitchens, bathrooms, and countertops.
               Licensed, insured, and trusted for 16+ years.
             </p>
             <div className="flex flex-wrap gap-4">
               <Link
                 to="/get-a-quote"
-                className="bg-wood-600 hover:bg-wood-700 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-all hover:scale-105 shadow-lg shadow-wood-900/30"
+                className="bg-wood-500 hover:bg-wood-600 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-all hover:scale-105 shadow-lg shadow-wood-900/30"
               >
                 Get Your Free Quote
               </Link>
               <Link
                 to="/collections"
-                className="border border-stone-600 hover:border-stone-400 text-stone-300 hover:text-white font-semibold px-8 py-3.5 rounded-xl text-base transition-all"
+                className="border border-white/30 hover:border-white/60 text-white font-semibold px-8 py-3.5 rounded-xl text-base transition-all backdrop-blur-sm"
               >
                 Browse Collections
               </Link>
@@ -190,7 +190,7 @@ export default function Home() {
       </section>
 
       {/* TRUST BAR */}
-      <section className="bg-stone-900 border-b border-stone-800">
+      <section className="bg-navy-800 border-b border-navy-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
@@ -321,7 +321,7 @@ export default function Home() {
               },
             ].map((step) => (
               <div key={step.step} className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-stone-950 rounded-2xl flex items-center justify-center mb-5 relative z-10">
+                <div className="w-16 h-16 bg-navy-900 rounded-2xl flex items-center justify-center mb-5 relative z-10">
                   <span className="text-wood-400 font-bold text-xl">{step.step}</span>
                 </div>
                 <h3 className="font-bold text-stone-900 text-lg mb-2">{step.title}</h3>
@@ -331,7 +331,7 @@ export default function Home() {
           </div>
           <div className="text-center mt-12">
             <Link to="/get-a-quote"
-              className="bg-stone-950 hover:bg-stone-800 text-white font-bold px-8 py-3.5 rounded-xl transition-all">
+              className="bg-navy-900 hover:bg-navy-800 text-white font-bold px-8 py-3.5 rounded-xl transition-all">
               Start Your Project →
             </Link>
           </div>
@@ -385,8 +385,52 @@ export default function Home() {
         </div>
       </section>
 
+      {/* BEFORE / AFTER GALLERY */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold text-stone-900 mb-4">Before & After</h2>
+            <p className="text-stone-500 text-lg max-w-xl mx-auto">Real kitchens transformed by our team in Orlando.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { before: '/images/before-1.jpeg', after: '/images/after-1.jpeg' },
+              { before: '/images/before-2.jpeg', after: '/images/after-2.jpeg' },
+              { before: '/images/before-3.jpeg', after: '/images/after-3.jpeg' },
+            ].map((pair, i) => (
+              <div key={i} className="rounded-2xl overflow-hidden border border-stone-200 shadow-sm">
+                <div className="grid grid-cols-2">
+                  <div className="relative">
+                    <img src={pair.before} alt="Before installation" className="w-full h-48 object-cover"/>
+                    <div className="absolute bottom-2 left-2 bg-stone-900/70 text-white text-xs font-semibold px-2 py-1 rounded">Before</div>
+                  </div>
+                  <div className="relative">
+                    <img src={pair.after} alt="After installation" className="w-full h-48 object-cover"/>
+                    <div className="absolute bottom-2 right-2 bg-wood-500/90 text-white text-xs font-semibold px-2 py-1 rounded">After</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6 max-w-2xl mx-auto">
+            <div className="rounded-2xl overflow-hidden border border-stone-200 shadow-sm">
+              <img src="/images/kitchen-1.jpeg" alt="Kitchen cabinet installation Orlando" className="w-full h-52 object-cover"/>
+            </div>
+            <div className="rounded-2xl overflow-hidden border border-stone-200 shadow-sm">
+              <img src="/images/kitchen-3.jpeg" alt="Kitchen cabinet installation Central Florida" className="w-full h-52 object-cover"/>
+            </div>
+          </div>
+          <div className="text-center mt-10">
+            <Link to="/get-a-quote"
+              className="inline-block bg-wood-500 hover:bg-wood-600 text-white font-bold px-8 py-3.5 rounded-xl transition-all hover:scale-105">
+              Get a Quote for Your Kitchen →
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* FINAL CTA */}
-      <section className="py-20 bg-stone-950">
+      <section className="py-20 bg-navy-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Ready to Transform Your Kitchen?
