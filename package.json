@@ -11,12 +11,17 @@
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend && npm run build",
     "start": "node backend/dist/index.js",
-    "postinstall": "npm install --prefix frontend && npm install --prefix backend",
+    "postinstall": "npm install --legacy-peer-deps --prefix frontend && npm install --prefix backend",
     "prisma:generate": "cd backend && npm run prisma:generate",
     "prisma:migrate": "cd backend && npm run prisma:migrate",
     "seed": "cd backend && npm run seed"
   },
-  "keywords": ["cabinet", "quoting", "react", "express"],
+  "keywords": [
+    "cabinet",
+    "quoting",
+    "react",
+    "express"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -24,5 +29,6 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "dependencies": {}
 }
