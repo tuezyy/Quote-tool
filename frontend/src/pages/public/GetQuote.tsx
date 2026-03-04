@@ -20,6 +20,7 @@ type WallsState = { a: number; b: number; c: number; island: number }
 function wallsToLF(layout: string, walls: WallsState): number {
   switch (layout) {
     case 'straight': return walls.a
+    case 'galley':   return walls.a + walls.b
     case 'l_shape':  return walls.a + walls.b
     case 'u_shape':  return walls.a + walls.b + walls.c
     case 'island':   return walls.a + walls.b + walls.c + walls.island
@@ -30,6 +31,7 @@ function wallsToLF(layout: string, walls: WallsState): number {
 function lfToSize(layout: string, lf: number): 'small' | 'medium' | 'large' {
   switch (layout) {
     case 'straight': return lf < 12 ? 'small' : lf <= 16 ? 'medium' : 'large'
+    case 'galley':   return lf < 16 ? 'small' : lf <= 20 ? 'medium' : 'large'
     case 'l_shape':  return lf < 19 ? 'small' : lf <= 24 ? 'medium' : 'large'
     case 'u_shape':  return lf < 27 ? 'small' : lf <= 32 ? 'medium' : 'large'
     case 'island':   return lf < 35 ? 'small' : lf <= 42 ? 'medium' : 'large'
@@ -52,7 +54,8 @@ function calcEstimate(lf: number, collection: string, replacing: boolean, instal
 // ─── Step data ─────────────────────────────────────────────────────────────────
 const LAYOUTS = [
   { value: 'straight', label: 'Straight', sub: 'Single wall' },
-  { value: 'l_shape',  label: 'L-Shape',  sub: 'Two walls — most common' },
+  { value: 'galley',   label: 'Galley',   sub: 'Two parallel walls' },
+  { value: 'l_shape',  label: 'L-Shape',  sub: 'Two walls at a corner' },
   { value: 'u_shape',  label: 'U-Shape',  sub: 'Three walls' },
   { value: 'island',   label: 'Island',   sub: 'U-shape + center island' },
 ]
@@ -139,6 +142,8 @@ function LayoutIcon({ value }: { value: string }) {
       return <svg viewBox="0 0 64 64" className="w-10 h-10"><rect x="6" y="6" width="12" height="52" {...r}/><rect x="18" y="6" width="40" height="12" {...r}/></svg>
     case 'u_shape':
       return <svg viewBox="0 0 64 64" className="w-10 h-10"><rect x="6" y="6" width="12" height="52" {...r}/><rect x="6" y="6" width="52" height="12" {...r}/><rect x="46" y="6" width="12" height="52" {...r}/></svg>
+    case 'galley':
+      return <svg viewBox="0 0 64 64" className="w-10 h-10"><rect x="6" y="6" width="52" height="10" {...r}/><rect x="6" y="48" width="52" height="10" {...r}/></svg>
     case 'island':
       return <svg viewBox="0 0 64 64" className="w-10 h-10"><rect x="6" y="6" width="12" height="52" {...r}/><rect x="6" y="6" width="52" height="12" {...r}/><rect x="46" y="6" width="12" height="52" {...r}/><rect x="20" y="28" width="24" height="16" {...r}/></svg>
     default: return null
@@ -160,6 +165,18 @@ function WallDiagram({ layout, walls }: { layout: string; walls: WallsState }) {
         <text x="100" y="20" textAnchor="middle" fontSize="11" fill={lbl} fontWeight="600">Wall A — {ft(walls.a)}</text>
         <line x1="10" y1="52" x2="190" y2="52" stroke="#b0a898" strokeWidth="1" strokeDasharray="4,3"/>
         <text x="100" y="65" textAnchor="middle" fontSize="9" fill="#b0a898">← cabinets →</text>
+      </svg>
+    )
+  }
+  if (layout === 'galley') {
+    return (
+      <svg viewBox="0 0 200 110" className="w-48 h-24">
+        <rect x="10" y="14" width="180" height={T} fill={fill} stroke={stroke} strokeWidth="1.5" rx="2"/>
+        <text x="100" y="11" textAnchor="middle" fontSize="10" fill={lbl} fontWeight="600">Wall A (sink side) — {ft(walls.a)}</text>
+        <rect x="10" y="82" width="180" height={T} fill={fill} stroke={stroke} strokeWidth="1.5" rx="2"/>
+        <text x="100" y="108" textAnchor="middle" fontSize="10" fill={lbl} fontWeight="600">Wall B (opposite) — {ft(walls.b)}</text>
+        <line x1="100" y1="26" x2="100" y2="82" stroke="#b0a898" strokeWidth="1" strokeDasharray="4,3"/>
+        <text x="108" y="58" fontSize="9" fill="#b0a898">aisle</text>
       </svg>
     )
   }
@@ -235,8 +252,9 @@ function ContactFields({ c, onChange }: { c: ContactForm; onChange: (f: ContactF
 type BuildStep = 'intro' | 'photo' | 1 | 2 | 3 | 'style' | 'estimate' | 'qualify' | 'planner' | 'contact'
 
 // Which wall inputs to show per layout
-const WALL_INPUTS: Record<string, Array<{ key: keyof WallsState; label: string; min: number; max: number }>> = {
+const WALL_INPUTS: Record<string, Array<{ key: keyof WallsState; label: string; min: number; max: number; hint?: string }>> = {
   straight: [{ key: 'a', label: 'Wall A', min: 3, max: 40 }],
+  galley:   [{ key: 'a', label: 'Wall A (sink side)', min: 3, max: 40, hint: 'The longer run' }, { key: 'b', label: 'Wall B (opposite)', min: 3, max: 40, hint: 'Facing wall' }],
   l_shape:  [{ key: 'a', label: 'Wall A', min: 3, max: 40 }, { key: 'b', label: 'Wall B', min: 3, max: 40 }],
   u_shape:  [{ key: 'a', label: 'Wall A', min: 3, max: 40 }, { key: 'b', label: 'Wall B', min: 3, max: 40 }, { key: 'c', label: 'Wall C', min: 3, max: 40 }],
   island:   [{ key: 'a', label: 'Wall A', min: 3, max: 40 }, { key: 'b', label: 'Wall B', min: 3, max: 40 }, { key: 'c', label: 'Wall C', min: 3, max: 40 }, { key: 'island', label: 'Island', min: 2, max: 20 }],
@@ -264,6 +282,9 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
   const [photoThumbs, setPhotoThumbs]       = useState<string[]>([])
   const photo1Ref = useRef<HTMLInputElement>(null)
   const photo2Ref = useRef<HTMLInputElement>(null)
+
+  // Tracks whether wall dims were auto-filled from vision (shows verify notice on step 1)
+  const [visionFilled, setVisionFilled] = useState(false)
 
   // Lead qualification
   const [ownsHome, setOwnsHome]               = useState<boolean | null>(null)
@@ -365,11 +386,12 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
     setVisionResult(null)
   }
 
-  const applyVisionResult = (result: VisionResult, advance: boolean) => {
+  const applyVisionResult = (result: VisionResult) => {
     setLayout(result.layout)
     setWalls(result.walls)
     if (result.replacing) setReplacing(true)
-    if (advance) setStep(1)
+    setVisionFilled(true)
+    setStep(1) // always land on wall dimensions so user can verify
   }
 
   const goToEstimate = () => {
@@ -572,11 +594,11 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
                       <p className="text-xs text-stone-400 italic mb-3">"{visionResult.notes}"</p>
                     )}
                     <div className="flex gap-3 flex-wrap mt-3">
-                      <button onClick={() => applyVisionResult(visionResult, true)}
+                      <button onClick={() => applyVisionResult(visionResult)}
                         className="bg-wood-600 hover:bg-wood-700 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors">
                         Looks right →
                       </button>
-                      <button onClick={() => applyVisionResult(visionResult, true)}
+                      <button onClick={() => applyVisionResult(visionResult)}
                         className="border border-stone-300 text-stone-700 text-sm font-medium px-5 py-2 rounded-xl hover:border-stone-400 transition-colors">
                         Adjust manually →
                       </button>
@@ -608,7 +630,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
             {LAYOUTS.map(l => (
               <button key={l.value}
-                onClick={() => { setLayout(l.value); setWalls({ a: 0, b: 0, c: 0, island: 0 }) }}
+                onClick={() => { setLayout(l.value); setWalls({ a: 0, b: 0, c: 0, island: 0 }); setVisionFilled(false) }}
                 className={`border-2 rounded-2xl p-4 text-center transition-all flex flex-col items-center gap-2 ${layout===l.value?'border-wood-600 bg-wood-50':'border-stone-200 hover:border-stone-400'}`}>
                 <div className={layout===l.value?'text-wood-700':'text-stone-500'}><LayoutIcon value={l.value}/></div>
                 <div className="font-bold text-stone-900 text-sm">{l.label}</div>
@@ -616,6 +638,19 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
               </button>
             ))}
           </div>
+
+          {/* AI estimate notice — shown when dimensions were auto-filled from vision */}
+          {visionFilled && layout && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 mb-3 flex items-start gap-2 text-sm text-amber-800">
+              <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 110 18A9 9 0 0112 3z"/>
+              </svg>
+              <span>
+                <strong>AI estimate — please verify.</strong> These wall lengths were detected from your photo.
+                Photos can make spaces look larger — adjust if the numbers seem off.
+              </span>
+            </div>
+          )}
 
           {/* Wall dimension inputs — shown after layout selected */}
           {layout && (
@@ -629,15 +664,20 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
                 {/* Inputs */}
                 <div className="flex-1">
                   <div className="grid grid-cols-2 gap-3">
-                    {(WALL_INPUTS[layout] || []).map(({ key, label, min, max }) => (
+                    {(WALL_INPUTS[layout] || []).map(({ key, label, min, max, hint }) => (
                       <div key={key}>
-                        <label className="text-xs font-semibold text-stone-500 mb-1 block">{label}</label>
+                        <label className="text-xs font-semibold text-stone-500 mb-1 block">
+                          {label}
+                          {hint && <span className="font-normal text-stone-400 ml-1">({hint})</span>}
+                        </label>
                         <input
                           type="number" min={min} max={max} step="0.5"
                           value={walls[key] || ''}
-                          onChange={e => setWallValue(key, e.target.value)}
+                          onChange={e => { setWallValue(key, e.target.value); setVisionFilled(false) }}
                           placeholder={`ft (e.g. ${min + 4})`}
-                          className="w-full border border-stone-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wood-500"
+                          className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wood-500 ${
+                            visionFilled && walls[key] > 0 ? 'border-amber-300 bg-amber-50' : 'border-stone-300'
+                          }`}
                         />
                       </div>
                     ))}

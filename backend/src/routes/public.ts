@@ -30,6 +30,22 @@ const BOM: Record<string, BomTemplate> = {
     wall: [{ code:'W1830',qty:1 },{ code:'W2130',qty:1 },{ code:'W2430',qty:2 },{ code:'W3030',qty:2 },{ code:'W3330',qty:1 },{ code:'W3630',qty:1 }],
     installFee: 3200,
   },
+  // Galley = two parallel walls, no corner cabinets needed
+  galley_small: {
+    base: [{ code:'SB30',qty:1 },{ code:'B18',qty:1 },{ code:'B24',qty:1 },{ code:'B30',qty:1 },{ code:'B18',qty:1 },{ code:'B24',qty:1 },{ code:'B30',qty:1 }],
+    wall: [{ code:'W2430',qty:1 },{ code:'W3030',qty:1 },{ code:'W3630',qty:1 },{ code:'W2430',qty:1 },{ code:'W3030',qty:1 }],
+    installFee: 2200,
+  },
+  galley_medium: {
+    base: [{ code:'SB30',qty:1 },{ code:'B18',qty:2 },{ code:'B24',qty:1 },{ code:'B30',qty:2 },{ code:'B18',qty:1 },{ code:'B24',qty:2 },{ code:'B30',qty:1 }],
+    wall: [{ code:'W1830',qty:1 },{ code:'W2430',qty:1 },{ code:'W3030',qty:2 },{ code:'W3630',qty:1 },{ code:'W2430',qty:1 },{ code:'W3030',qty:1 },{ code:'W3630',qty:1 }],
+    installFee: 3000,
+  },
+  galley_large: {
+    base: [{ code:'SB33',qty:1 },{ code:'B18',qty:2 },{ code:'B21',qty:1 },{ code:'B24',qty:2 },{ code:'B30',qty:2 },{ code:'B18',qty:1 },{ code:'B21',qty:1 },{ code:'B24',qty:2 },{ code:'B30',qty:2 }],
+    wall: [{ code:'W1830',qty:2 },{ code:'W2130',qty:1 },{ code:'W2430',qty:2 },{ code:'W3030',qty:2 },{ code:'W1830',qty:1 },{ code:'W2430',qty:1 },{ code:'W3030',qty:2 },{ code:'W3630',qty:1 }],
+    installFee: 3800,
+  },
   l_shape_small: {
     base: [{ code:'BBC36',qty:1 },{ code:'B18',qty:1 },{ code:'B24',qty:1 },{ code:'SB30',qty:1 },{ code:'B30',qty:1 },{ code:'B24',qty:1 }],
     wall: [{ code:'WBC3630',qty:1 },{ code:'W1830',qty:1 },{ code:'W2430',qty:2 },{ code:'W3030',qty:1 },{ code:'W3630',qty:1 }],
@@ -519,6 +535,7 @@ router.post(
 // ─────────────────────────────────────────────
 const TEMPLATE_LF: Record<string, number> = {
   straight_small: 10, straight_medium: 13, straight_large: 16,
+  galley_small:   16, galley_medium:   20, galley_large:   24,
   l_shape_small:  19, l_shape_medium:  22, l_shape_large:  26,
   u_shape_small:  26, u_shape_medium:  30, u_shape_large:  36,
   island_small:   34, island_medium:   40, island_large:   48,
