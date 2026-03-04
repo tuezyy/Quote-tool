@@ -44,7 +44,7 @@ export default function Quotes() {
   const handleDuplicateQuote = async (quoteId: string) => {
     try {
       const response = await axios.post(`/quotes/${quoteId}/duplicate`);
-      navigate(`/quotes/${response.data.id}`);
+      navigate(`/admin/quotes/${response.data.id}`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to duplicate quote');
     }
@@ -101,7 +101,7 @@ export default function Quotes() {
           <p className="text-gray-600 mt-2">View and manage all quotes</p>
         </div>
         <button
-          onClick={() => navigate('/quotes/new')}
+          onClick={() => navigate('/admin/quotes/new')}
           className="btn-primary"
         >
           + New Quote
@@ -151,7 +151,7 @@ export default function Quotes() {
           </p>
           {!searchTerm && !statusFilter && (
             <button
-              onClick={() => navigate('/quotes/new')}
+              onClick={() => navigate('/admin/quotes/new')}
               className="btn-primary mt-4"
             >
               Create First Quote
@@ -164,7 +164,7 @@ export default function Quotes() {
             <div
               key={quote.id}
               className="card hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => navigate(`/quotes/${quote.id}`)}
+              onClick={() => navigate(`/admin/quotes/${quote.id}`)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -210,7 +210,7 @@ export default function Quotes() {
 
                 <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
                   <button
-                    onClick={() => navigate(`/quotes/${quote.id}`)}
+                    onClick={() => navigate(`/admin/quotes/${quote.id}`)}
                     className="btn-secondary text-sm py-2 px-3"
                   >
                     View

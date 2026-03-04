@@ -30,24 +30,31 @@ export default function PublicLayout() {
         </a>
       </div>
 
-      {/* Main nav */}
-      <nav className="bg-white border-b border-stone-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo — centered on mobile, left on desktop */}
-            <Link to="/" className="hidden md:flex items-center flex-shrink-0">
-              <img src="/images/logo.png" alt="Cabinets of Orlando" className="h-10 w-auto" />
+      {/* Pill nav */}
+      <nav className="sticky top-0 z-50 px-4 py-3">
+        <div className="max-w-5xl mx-auto relative">
+          <div className="bg-white/95 backdrop-blur-md border border-stone-200 rounded-full shadow-md px-5 py-2.5 flex items-center justify-between">
+
+            {/* Brand */}
+            <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
+              <img src="/images/logo.png" alt="Cabinets of Orlando" className="h-8 w-auto" />
+              <span className="hidden sm:block font-bold text-navy-900 text-sm tracking-tight">
+                Cabinets of Orlando
+              </span>
             </Link>
-            {/* Mobile: 3-col layout to center logo */}
-            <div className="flex md:hidden items-center justify-between w-full">
-              <div className="w-10" />
-              <Link to="/" className="flex items-center">
-                <img src="/images/logo.png" alt="Cabinets of Orlando" className="h-10 w-auto" />
+
+            {/* Right: CTA + hamburger */}
+            <div className="flex items-center gap-2">
+              <Link
+                to="/get-a-quote"
+                className="bg-wood-600 hover:bg-wood-700 text-white text-sm font-semibold px-5 py-2 rounded-full transition-colors"
+              >
+                Get a Quote
               </Link>
               <button
-                className="p-2 rounded text-stone-600"
                 onClick={() => setMenuOpen(!menuOpen)}
-                aria-label="Toggle menu"
+                className="p-2.5 rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-900 transition-colors"
+                aria-label="Menu"
               >
                 {menuOpen ? (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,70 +67,39 @@ export default function PublicLayout() {
                 )}
               </button>
             </div>
+          </div>
 
-            {/* Desktop nav */}
-            <div className="hidden md:flex items-center gap-1">
-              {NAV_LINKS.map(link => (
-                link.highlight ? (
+          {/* Dropdown */}
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+              <div className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-xl border border-stone-100 overflow-hidden z-50 min-w-52">
+                {NAV_LINKS.filter(l => !l.highlight).map(link => (
                   <Link
                     key={link.to}
                     to={link.to}
-                    className="ml-4 bg-wood-600 hover:bg-wood-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                ) : (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    onClick={() => setMenuOpen(false)}
+                    className={`block px-5 py-3 text-sm font-medium transition-colors ${
                       location.pathname === link.to
-                        ? 'text-stone-900 bg-stone-100'
-                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
+                        ? 'text-wood-700 bg-wood-50'
+                        : 'text-stone-700 hover:bg-stone-50'
                     }`}
                   >
                     {link.label}
                   </Link>
-                )
-              ))}
-              <a
-                href="tel:+18332017849"
-                className="ml-3 flex items-center gap-1.5 text-stone-700 hover:text-wood-600 text-sm font-medium border border-stone-200 rounded-lg px-3 py-2 hover:border-wood-400 transition-colors"
-              >
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                </svg>
-                (833) 201-7849
-              </a>
-            </div>
-
-          </div>
+                ))}
+                <div className="border-t border-stone-100 px-5 py-3">
+                  <a href="tel:+18332017849" className="flex items-center gap-2 text-sm text-stone-600 hover:text-wood-600 transition-colors">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    </svg>
+                    (833) 201-7849
+                  </a>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-
-        {/* Mobile menu */}
-        {menuOpen && (
-          <div className="md:hidden border-t border-stone-100 bg-white px-4 py-3 flex flex-col gap-1">
-            {NAV_LINKS.map(link => (
-              <Link
-                key={link.to}
-                to={link.to}
-                onClick={() => setMenuOpen(false)}
-                className={`px-3 py-2.5 rounded-lg text-sm font-medium ${
-                  link.highlight
-                    ? 'bg-wood-600 text-white text-center'
-                    : location.pathname === link.to
-                      ? 'bg-stone-100 text-stone-900'
-                      : 'text-stone-600'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <a href="tel:+18332017849" className="text-center text-wood-600 font-semibold py-2 text-sm">
-              (833) 201-7849
-            </a>
-          </div>
-        )}
       </nav>
 
       {/* Page content */}

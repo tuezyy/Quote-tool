@@ -9,6 +9,14 @@ interface Setting {
   updatedAt: string;
 }
 
+interface Installer {
+  id: string;
+  fullname: string | null;
+  email: string;
+  phone: string | null;
+  isAvailable: boolean;
+}
+
 export default function Settings() {
   const [settings, setSettings] = useState<Record<string, string>>({
     tax_rate: '',
@@ -22,9 +30,61 @@ export default function Settings() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Installer state
+  const [installers, setInstallers] = useState<Installer[]>([]);
+  const [editingPhone, setEditingPhone] = useState<Record<string, string>>({});
+  const [addingInstaller, setAddingInstaller] = useState(false);
+  const [newInstaller, setNewInstaller] = useState({ fullname: '', email: '', phone: '', password: '' });
+  const [installerMsg, setInstallerMsg] = useState('');
+
   useEffect(() => {
     fetchSettings();
+    fetchInstallers();
   }, []);
+
+  const fetchInstallers = async () => {
+    try {
+      const res = await axios.get('/users');
+      setInstallers((res.data as any[]).filter((u: any) => u.role === 'INSTALLER'));
+    } catch {
+      // silently fail — installers section just won't show
+    }
+  };
+
+  const toggleAvailability = async (installer: Installer) => {
+    try {
+      await axios.put(`/users/${installer.id}`, { isAvailable: !installer.isAvailable });
+      setInstallers(prev => prev.map(i => i.id === installer.id ? { ...i, isAvailable: !i.isAvailable } : i));
+    } catch {
+      setInstallerMsg('Failed to update availability');
+    }
+  };
+
+  const savePhone = async (installer: Installer) => {
+    const phone = editingPhone[installer.id] ?? installer.phone ?? '';
+    try {
+      await axios.put(`/users/${installer.id}`, { phone });
+      setInstallers(prev => prev.map(i => i.id === installer.id ? { ...i, phone } : i));
+      setEditingPhone(prev => { const n = { ...prev }; delete n[installer.id]; return n; });
+      setInstallerMsg('Phone saved');
+      setTimeout(() => setInstallerMsg(''), 2000);
+    } catch {
+      setInstallerMsg('Failed to save phone');
+    }
+  };
+
+  const createInstaller = async () => {
+    try {
+      const res = await axios.post('/users', { ...newInstaller, role: 'INSTALLER' });
+      setInstallers(prev => [...prev, res.data]);
+      setNewInstaller({ fullname: '', email: '', phone: '', password: '' });
+      setAddingInstaller(false);
+      setInstallerMsg('Installer added');
+      setTimeout(() => setInstallerMsg(''), 2000);
+    } catch (err: any) {
+      setInstallerMsg(err.response?.data?.error || 'Failed to add installer');
+    }
+  };
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -209,6 +269,90 @@ export default function Settings() {
             {saving ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
+      </div>
+
+      {/* Installer Management */}
+      <div className="card mt-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-bold">Installers</h2>
+            <p className="text-sm text-gray-500 mt-1">Manage who receives job notifications via SMS</p>
+          </div>
+          <button onClick={() => setAddingInstaller(true)} className="btn-primary text-sm px-4 py-2">
+            + Add Installer
+          </button>
+        </div>
+
+        {installerMsg && (
+          <div className="mb-4 text-sm text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded">
+            {installerMsg}
+          </div>
+        )}
+
+        {installers.length === 0 && !addingInstaller && (
+          <p className="text-gray-500 text-sm">No installers yet. Add one to enable automatic SMS routing.</p>
+        )}
+
+        <div className="space-y-3">
+          {installers.map(installer => (
+            <div key={installer.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded border border-gray-200">
+              {/* Availability toggle */}
+              <button
+                onClick={() => toggleAvailability(installer)}
+                className={`w-10 h-6 rounded-full transition-colors flex-shrink-0 ${installer.isAvailable ? 'bg-green-500' : 'bg-gray-300'}`}
+                title={installer.isAvailable ? 'Available — click to mark unavailable' : 'Unavailable — click to mark available'}
+              >
+                <span className={`block w-4 h-4 bg-white rounded-full shadow mx-1 transition-transform ${installer.isAvailable ? 'translate-x-4' : 'translate-x-0'}`} />
+              </button>
+
+              {/* Name + email */}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm text-gray-900 truncate">{installer.fullname || installer.email}</p>
+                <p className="text-xs text-gray-500 truncate">{installer.email}</p>
+              </div>
+
+              {/* Phone */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="tel"
+                  placeholder="+13215551234"
+                  value={editingPhone[installer.id] ?? installer.phone ?? ''}
+                  onChange={e => setEditingPhone(prev => ({ ...prev, [installer.id]: e.target.value }))}
+                  className="input text-sm w-36 py-1"
+                />
+                {installer.id in editingPhone && (
+                  <button onClick={() => savePhone(installer)} className="btn-primary text-xs px-3 py-1">Save</button>
+                )}
+              </div>
+
+              {/* Status badge */}
+              <span className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${installer.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                {installer.isAvailable ? 'Available' : 'Off'}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Add installer form */}
+        {addingInstaller && (
+          <div className="mt-4 p-4 border border-blue-200 rounded bg-blue-50 space-y-3">
+            <h3 className="font-semibold text-sm">New Installer</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <input type="text" placeholder="Full name" value={newInstaller.fullname}
+                onChange={e => setNewInstaller(p => ({ ...p, fullname: e.target.value }))} className="input text-sm" />
+              <input type="tel" placeholder="Phone (+13215551234)" value={newInstaller.phone}
+                onChange={e => setNewInstaller(p => ({ ...p, phone: e.target.value }))} className="input text-sm" />
+              <input type="email" placeholder="Email" value={newInstaller.email}
+                onChange={e => setNewInstaller(p => ({ ...p, email: e.target.value }))} className="input text-sm" />
+              <input type="password" placeholder="Password (min 6 chars)" value={newInstaller.password}
+                onChange={e => setNewInstaller(p => ({ ...p, password: e.target.value }))} className="input text-sm" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={createInstaller} className="btn-primary text-sm px-4 py-2">Add</button>
+              <button onClick={() => setAddingInstaller(false)} className="btn-secondary text-sm px-4 py-2">Cancel</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Preview Section */}

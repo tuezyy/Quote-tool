@@ -15,6 +15,8 @@ router.get('/', authenticate, requireAdmin, async (req, res) => {
         email: true,
         fullname: true,
         role: true,
+        phone: true,
+        isAvailable: true,
         createdAt: true,
         updatedAt: true
       },
@@ -40,6 +42,8 @@ router.get('/:id', authenticate, requireAdmin, async (req, res) => {
         email: true,
         fullname: true,
         role: true,
+        phone: true,
+        isAvailable: true,
         createdAt: true,
         updatedAt: true
       }
@@ -74,7 +78,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, fullname, role } = req.body;
+      const { email, password, fullname, role, phone } = req.body;
 
       // Check if user exists
       const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -91,13 +95,16 @@ router.post(
           email,
           passwordHash,
           fullname,
-          role
+          role,
+          phone: phone || null,
         },
         select: {
           id: true,
           email: true,
           fullname: true,
           role: true,
+          phone: true,
+          isAvailable: true,
           createdAt: true
         }
       });
@@ -114,13 +121,15 @@ router.post(
 router.put('/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, password, fullname, role } = req.body;
+    const { email, password, fullname, role, phone, isAvailable } = req.body;
 
     const updateData: any = {};
 
     if (email) updateData.email = email;
     if (fullname) updateData.fullname = fullname;
     if (role) updateData.role = role;
+    if (phone !== undefined) updateData.phone = phone || null;
+    if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
     if (password) {
       updateData.passwordHash = await bcrypt.hash(password, 10);
     }
@@ -133,6 +142,8 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         email: true,
         fullname: true,
         role: true,
+        phone: true,
+        isAvailable: true,
         updatedAt: true
       }
     });

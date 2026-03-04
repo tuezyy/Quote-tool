@@ -13,13 +13,13 @@ const LAYOUT_LF: Record<string, Record<string, number>> = {
 }
 
 const PRICE_PER_LF: Record<string, { min: number; max: number }> = {
-  'Builder Grade':      { min: 280, max: 360 },
-  'Essential Collection': { min: 320, max: 400 },
-  'Charm Collection':   { min: 390, max: 490 },
-  'Double Shaker':      { min: 450, max: 560 },
-  'Classic Style':      { min: 450, max: 560 },
-  'Slim Shaker':        { min: 480, max: 600 },
-  'Frameless European': { min: 580, max: 720 },
+  'Builder Grade':        { min: 350, max: 480 },
+  'Essential Collection': { min: 470, max: 640 },
+  'Charm Collection':     { min: 520, max: 700 },
+  'Double Shaker':        { min: 540, max: 730 },
+  'Classic Style':        { min: 540, max: 740 },
+  'Slim Shaker':          { min: 550, max: 760 },
+  'Frameless European':   { min: 750, max: 1020 },
 }
 
 function calcEstimate(layout: string, size: string, collection: string, replacing: boolean, installOnly: boolean) {
@@ -48,15 +48,64 @@ const SIZES = [
   { value: 'large',  label: 'Large',  sub: '250+ sq ft' },
 ]
 const COLLECTIONS = [
-  { name: 'Essential Collection', desc: 'Shaker White, Gray & Espresso',          img: '/images/styles/essential-shaker-white.jpg' },
-  { name: 'Charm Collection',     desc: '8 colors — navy, greens, wood tones',    img: '/images/styles/charm-rustic-wood.jpg', tag: 'Most Popular' },
-  { name: 'Slim Shaker',         desc: 'Modern slim rail, 5 finishes',            img: '/images/styles/slim-dove-white.jpg' },
-  { name: 'Double Shaker',       desc: 'Double-rail profile, 2 finishes',         img: '/images/styles/double-dove-white.jpg' },
-  { name: 'Classic Style',       desc: 'Raised panel, traditional elegance',      img: '/images/styles/classic-aspen-white.jpg' },
-  { name: 'Frameless European',  desc: 'Glass, gloss, matte & wood-look',         img: '/images/styles/frameless-crystal-glass.jpg' },
-  { name: 'Builder Grade',       desc: 'Best value, contractor-grade',            img: '/images/styles/builder-floral-white.jpg' },
-  { name: 'Not Sure Yet',        desc: 'Our team will help you choose',           img: '/images/styles/charm-smokey-ash.jpg' },
+  { name: 'Essential Collection', desc: '3 colors — White, Gray, Espresso',      img: '/images/styles/essential-shaker-white.jpg' },
+  { name: 'Charm Collection',     desc: '8 colors — navy, greens, wood tones',   img: '/images/styles/charm-rustic-wood.jpg', tag: 'Most Popular' },
+  { name: 'Slim Shaker',          desc: '5 finishes — modern slim rail',          img: '/images/styles/slim-dove-white.jpg' },
+  { name: 'Double Shaker',        desc: '2 finishes — double-rail profile',       img: '/images/styles/double-dove-white.jpg' },
+  { name: 'Classic Style',        desc: '3 finishes — raised panel, traditional', img: '/images/styles/classic-aspen-white.jpg' },
+  { name: 'Frameless European',   desc: '8 finishes — glass, gloss, wood-look',   img: '/images/styles/frameless-crystal-glass.jpg' },
+  { name: 'Builder Grade',        desc: '3 finishes — best value',               img: '/images/styles/builder-floral-white.jpg' },
+  { name: 'Not Sure Yet',         desc: 'Our team will help you choose',          img: '/images/styles/charm-smokey-ash.jpg' },
 ]
+
+const COLLECTION_STYLES: Record<string, Array<{ name: string; img: string }>> = {
+  'Essential Collection': [
+    { name: 'Shaker White',   img: '/images/styles/essential-shaker-white.jpg' },
+    { name: 'Shaker Gray',    img: '/images/styles/essential-shaker-gray.jpg' },
+    { name: 'Shaker Espresso',img: '/images/styles/essential-shaker-espresso.jpg' },
+  ],
+  'Charm Collection': [
+    { name: 'Navy Blue',      img: '/images/styles/charm-navy-blue.jpg' },
+    { name: 'Iron Black',     img: '/images/styles/charm-iron-black.jpg' },
+    { name: 'Treasure Chest', img: '/images/styles/charm-treasure-chest.jpg' },
+    { name: 'Aston Green',    img: '/images/styles/charm-aston-green.jpg' },
+    { name: 'Smokey Ash',     img: '/images/styles/charm-smokey-ash.jpg' },
+    { name: 'Luna Grey',      img: '/images/styles/charm-luna-grey.jpg' },
+    { name: 'Rustic Wood',    img: '/images/styles/charm-rustic-wood.jpg' },
+    { name: 'Sage Breeze',    img: '/images/styles/charm-sage-breeze.jpg' },
+  ],
+  'Slim Shaker': [
+    { name: 'Slim Dove White', img: '/images/styles/slim-dove-white.jpg' },
+    { name: 'Slim White Oak',  img: '/images/styles/slim-white-oak.jpg' },
+    { name: 'Slim Aston Green',img: '/images/styles/slim-aston-green.jpg' },
+    { name: 'Slim Amber Oak',  img: '/images/styles/slim-amber-oak.jpg' },
+    { name: 'Slim Iron Black', img: '/images/styles/slim-iron-black.jpg' },
+  ],
+  'Double Shaker': [
+    { name: 'Double Smokey Grey', img: '/images/styles/double-smokey-grey.jpg' },
+    { name: 'Double Dove White',  img: '/images/styles/double-dove-white.jpg' },
+  ],
+  'Classic Style': [
+    { name: 'Charleston White',    img: '/images/styles/classic-charleston-white.jpg' },
+    { name: 'Aspen White',         img: '/images/styles/classic-aspen-white.jpg' },
+    { name: 'Aspen Charcoal Gray', img: '/images/styles/classic-aspen-charcoal-gray.jpg' },
+  ],
+  'Frameless European': [
+    { name: 'High Gloss White', img: '/images/styles/frameless-high-gloss-white.jpg' },
+    { name: 'High Gloss Gray',  img: '/images/styles/frameless-high-gloss-gray.jpg' },
+    { name: 'Crystal Glass',    img: '/images/styles/frameless-crystal-glass.jpg' },
+    { name: 'Midnight Glass',   img: '/images/styles/frameless-midnight-glass.jpg' },
+    { name: 'Matt Black',       img: '/images/styles/frameless-matt-black.jpg' },
+    { name: 'Matt Ivory',       img: '/images/styles/frameless-matt-ivory.jpg' },
+    { name: 'Oak Blonde',       img: '/images/styles/frameless-oak-blonde.jpg' },
+    { name: 'Oak Shade',        img: '/images/styles/frameless-oak-shade.jpg' },
+  ],
+  'Builder Grade': [
+    { name: 'Floral White',    img: '/images/styles/builder-floral-white.jpg' },
+    { name: 'Floral Espresso', img: '/images/styles/builder-floral-espresso.jpg' },
+    { name: 'Floral Gray',     img: '/images/styles/builder-floral-gray.jpg' },
+  ],
+}
 const TIMELINES = ['As soon as possible', 'Within 1 month', '1–3 months', '3–6 months', 'Just researching']
 
 // ─── Shared types ──────────────────────────────────────────────────────────────
@@ -103,7 +152,7 @@ function ContactFields({ c, onChange }: { c: ContactForm; onChange: (f: ContactF
 // ═══════════════════════════════════════════════════════════════════════════════
 // BUILD & PRICE PATH
 // ═══════════════════════════════════════════════════════════════════════════════
-type BuildStep = 1 | 2 | 3 | 'estimate' | 'contact'
+type BuildStep = 1 | 2 | 3 | 'style' | 'estimate' | 'contact'
 
 function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
   const [step, setStep]           = useState<BuildStep>(1)
@@ -112,6 +161,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
   const [replacing, setReplacing] = useState<boolean | null>(null)
   const [installOnly, setInstOnly]= useState<boolean | null>(null)
   const [collection, setCollection] = useState('')
+  const [style, setStyle]         = useState('')
   const [contact, setContact]     = useState<ContactForm>(EMPTY)
   const [timeline, setTimeline]   = useState('')
   const [notes, setNotes]         = useState('')
@@ -130,18 +180,31 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
     else setStep(3)
   }
 
+  const pickCollection = (name: string) => {
+    setCollection(name)
+    setStyle('')
+    if (name === 'Not Sure Yet' || !COLLECTION_STYLES[name]?.length) {
+      setStep('estimate')
+    } else {
+      setStep('style')
+    }
+  }
+
   const submit = async () => {
     setSubmitting(true); setError('')
     try {
       const est = estimate!
-      await axios.post('/api/public/quote-request', {
+      const res = await axios.post('/api/public/quote-request', {
         ...contact, timeline, notes,
         kitchenSize: `${layout}_${size}`,
         collection,
+        style,
         quoteType: 'estimate',
+        estimateMin: est.min,
+        estimateMax: est.max,
         items: [],
       })
-      onSuccess({ ...contact, estimate: est, layout, size, collection, installOnly })
+      onSuccess({ ...contact, estimate: est, layout, size, collection, style, installOnly, quoteNumber: res.data.quoteNumber })
     } catch { setError('Something went wrong. Please call (833) 201-7849.') }
     finally { setSubmitting(false) }
   }
@@ -230,31 +293,58 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
         </div>
       )}
 
-      {/* ── Step 3: Style/Collection picker (full project only) ────────────────── */}
+      {/* ── Step 3: Collection picker ──────────────────────────────────────────── */}
       {step === 3 && (
         <div className="animate-fade-in">
           <h2 className="text-xl font-bold text-stone-900 mb-1">What cabinet style do you prefer?</h2>
-          <p className="text-stone-400 text-sm mb-6">This affects pricing. Not sure? Pick closest match — our team will help refine it.</p>
+          <p className="text-stone-400 text-sm mb-6">Click a style to see all available colors. Affects pricing.</p>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-            {COLLECTIONS.map(col => {
-              return (
-                <button key={col.name} onClick={() => { setCollection(col.name); setStep('estimate') }}
-                  style={{ backgroundImage: `url('${col.img}')` }}
-                  className={`group relative overflow-hidden rounded-2xl h-40 text-left transition-all hover:shadow-lg hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-wood-500 bg-cover bg-center bg-stone-800 ${collection===col.name?'ring-2 ring-wood-500':''}`}>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/10"/>
-                  {col.tag && <div className="absolute top-3 right-3 bg-wood-500 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">{col.tag}</div>}
-                  <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
-                    <div className="font-bold text-sm leading-tight text-white">{col.name}</div>
-                    <div className="text-xs mt-0.5 text-stone-300">{col.desc}</div>
-                  </div>
-                </button>
-              )
-            })}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            {COLLECTIONS.map(col => (
+              <button key={col.name} onClick={() => pickCollection(col.name)}
+                className={`group rounded-2xl overflow-hidden border-2 transition-all hover:shadow-md hover:scale-[1.02] focus:outline-none bg-white text-left ${collection===col.name?'border-wood-500':'border-stone-200 hover:border-stone-300'}`}>
+                {col.tag && <div className="absolute" />}
+                <div className="relative h-44 bg-stone-400 flex items-center justify-center overflow-hidden p-3">
+                  <img src={col.img} alt={col.name} className="h-full w-auto object-contain drop-shadow-sm"/>
+                  {col.tag && <div className="absolute top-2 right-2 bg-wood-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{col.tag}</div>}
+                </div>
+                <div className="p-2.5 border-t border-stone-100">
+                  <div className="font-bold text-xs text-stone-900 leading-tight">{col.name}</div>
+                  <div className="text-xs text-stone-400 mt-0.5">{col.desc}</div>
+                </div>
+              </button>
+            ))}
           </div>
 
           <div className="flex justify-start">
             <button onClick={() => setStep(2)} className="text-stone-500 hover:text-stone-700 text-sm font-medium">← Back</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step style: Color picker for selected collection ───────────────────── */}
+      {step === 'style' && (
+        <div className="animate-fade-in">
+          <div className="flex items-center gap-2 mb-4">
+            <button onClick={() => setStep(3)} className="text-stone-500 hover:text-stone-700 text-sm font-medium">← Back</button>
+            <span className="text-stone-300">·</span>
+            <span className="text-sm font-semibold text-wood-600">{collection}</span>
+          </div>
+          <h2 className="text-xl font-bold text-stone-900 mb-1">Choose your color</h2>
+          <p className="text-stone-400 text-sm mb-5">Not sure? Pick the closest — our team will help refine it.</p>
+
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-6">
+            {(COLLECTION_STYLES[collection] || []).map(s => (
+              <button key={s.name} onClick={() => { setStyle(s.name); setStep('estimate') }}
+                className={`group rounded-xl overflow-hidden border-2 transition-all hover:shadow-md hover:scale-[1.02] focus:outline-none bg-white ${style===s.name?'border-wood-500':'border-stone-200 hover:border-stone-300'}`}>
+                <div className="aspect-[3/4] bg-stone-400 flex items-center justify-center overflow-hidden p-2">
+                  <img src={s.img} alt={s.name} className="h-full w-auto object-contain drop-shadow-sm"/>
+                </div>
+                <div className="px-2 py-2 border-t border-stone-100">
+                  <div className="text-xs font-semibold text-stone-900 leading-tight">{s.name}</div>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -273,7 +363,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
                 : `installed · ~${estimate.lf} linear feet · ${replacing ? 'includes demo & haul-away' : 'new construction'}`}
             </div>
             {!installOnly && collection && collection !== 'Not Sure Yet' && (
-              <div className="mt-1 text-xs text-stone-400">{collection}</div>
+              <div className="mt-1 text-xs text-stone-400">{collection}{style ? ` · ${style}` : ''}</div>
             )}
           </div>
 
@@ -301,7 +391,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
           <p className="text-center text-stone-400 text-xs">No obligation. We will confirm exact pricing after a quick measurement walkthrough.</p>
 
           <div className="mt-6 flex justify-center gap-4 text-xs text-stone-400">
-            <button onClick={() => setStep(installOnly ? 2 : 3)} className="hover:text-stone-600 underline underline-offset-2">
+            <button onClick={() => setStep(installOnly ? 2 : style ? 'style' : 3)} className="hover:text-stone-600 underline underline-offset-2">
               Change selections
             </button>
           </div>
@@ -366,14 +456,12 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
 // QUICK ESTIMATE PATH
 // ═══════════════════════════════════════════════════════════════════════════════
 const KITCHEN_SIZES = [
-  { label: 'Small (10×10)',    value: 'small_10x10',   priceRange: '$7,500–$10,000' },
-  { label: 'Medium (12×14)',   value: 'medium_12x14',  priceRange: '$10,500–$14,000' },
-  { label: 'Large (15×15+)',   value: 'large_15x15',   priceRange: '$14,500–$19,000' },
+  { label: 'Small (10×10)',    value: 'small_10x10',   priceRange: '$8,500–$12,000' },
+  { label: 'Medium (12×14)',   value: 'medium_12x14',  priceRange: '$13,000–$18,000' },
+  { label: 'Large (15×15+)',   value: 'large_15x15',   priceRange: '$18,500–$26,000' },
   { label: 'Installation Only',value: 'install_only',  priceRange: '$2,800–$4,000' },
   { label: 'Not Sure Yet',     value: 'unknown',       priceRange: "We will figure it out together" },
 ]
-const COLLECTION_NAMES = ['Essential Collection','Charm Collection','Slim Shaker','Double Shaker','Classic Style','Frameless European','Builder Grade','Not Sure Yet']
-
 function EstimatePath({ onSuccess }: { onSuccess: (d: any) => void }) {
   const [step, setStep]           = useState<1|2>(1)
   const [kitchenSize, setKSize]   = useState('')
@@ -414,11 +502,18 @@ function EstimatePath({ onSuccess }: { onSuccess: (d: any) => void }) {
           </div>
           <div className="mb-6">
             <p className="text-sm font-bold text-stone-700 mb-3">Cabinet style preference</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {COLLECTION_NAMES.map(c => (
-                <button key={c} onClick={() => setCollection(c)}
-                  className={`border-2 rounded-xl px-4 py-3 text-left transition-all ${collection===c?'border-wood-600 bg-wood-50':'border-stone-200 hover:border-stone-400'}`}>
-                  <span className="font-semibold text-stone-900 text-sm">{c}</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {COLLECTIONS.map(col => (
+                <button key={col.name} onClick={() => setCollection(col.name)}
+                  className={`group rounded-2xl overflow-hidden border-2 transition-all hover:shadow-md hover:scale-[1.02] focus:outline-none bg-white text-left ${collection===col.name?'border-wood-500':'border-stone-200 hover:border-stone-300'}`}>
+                  <div className="relative h-36 bg-stone-400 flex items-center justify-center overflow-hidden p-3">
+                    <img src={col.img} alt={col.name} className="h-full w-auto object-contain drop-shadow-sm"/>
+                    {col.tag && <div className="absolute top-2 right-2 bg-wood-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{col.tag}</div>}
+                  </div>
+                  <div className="p-2.5 border-t border-stone-100">
+                    <div className="font-bold text-xs text-stone-900 leading-tight">{col.name}</div>
+                    <div className="text-xs text-stone-400 mt-0.5">{col.desc}</div>
+                  </div>
                 </button>
               ))}
             </div>
@@ -480,28 +575,74 @@ export default function GetQuote() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center px-4 py-20">
-        <div className="max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
-            </svg>
+      <div className="min-h-screen bg-stone-50 px-4 py-16">
+        <div className="max-w-lg mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-stone-900 mb-1">You're all set, {submitData?.firstName}!</h2>
+            {submitData?.quoteNumber && (
+              <div className="inline-block bg-stone-100 text-stone-500 text-xs font-mono px-3 py-1 rounded-full mt-1">
+                {submitData.quoteNumber}
+              </div>
+            )}
           </div>
-          <h2 className="text-2xl font-bold text-stone-900 mb-2">Quote Request Submitted!</h2>
-          <p className="text-stone-500 mb-2">Thanks, <strong>{submitData?.firstName}</strong>! We will reach out within 2 hours.</p>
+
+          {/* Estimate box */}
           {submitData?.estimate && (
-            <div className="bg-white border border-stone-200 rounded-xl p-4 my-5">
-              <div className="text-sm text-stone-500 mb-1">Your estimate range</div>
-              <div className="text-2xl font-bold text-wood-700">
+            <div className="bg-white border-2 border-wood-200 rounded-2xl p-5 mb-6 text-center">
+              <div className="text-xs font-bold text-wood-600 uppercase tracking-wider mb-1">Your Estimate Range</div>
+              <div className="text-3xl font-black text-stone-900">
                 ${submitData.estimate.min.toLocaleString()} – ${submitData.estimate.max.toLocaleString()}
               </div>
-              <div className="text-xs text-stone-400 mt-1">Our team will confirm the exact number within 2 hours</div>
+              <div className="text-xs text-stone-400 mt-1">
+                {submitData.installOnly
+                  ? 'flat-rate installation'
+                  : `${submitData.collection}${submitData.style ? ` · ${submitData.style}` : ''}`}
+              </div>
+              <div className="mt-3 text-xs text-stone-500 bg-stone-50 rounded-xl px-4 py-2">
+                This range is confirmed exact after your free in-home measurement.
+                Most projects land in the middle of this range.
+              </div>
             </div>
           )}
-          <p className="text-stone-400 text-sm mb-8">Confirmation sent to <strong>{submitData?.email}</strong>.</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/" className="border border-stone-300 text-stone-700 font-semibold px-6 py-2.5 rounded-xl text-sm">Back to Home</Link>
-            <a href="tel:+18332017849" className="bg-wood-600 hover:bg-wood-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors">Call (833) 201-7849</a>
+
+          {/* What happens next */}
+          <div className="bg-white border border-stone-200 rounded-2xl p-5 mb-6">
+            <h3 className="font-bold text-stone-900 mb-4 text-sm uppercase tracking-wide">What Happens Next</h3>
+            <div className="space-y-4">
+              {[
+                { icon: '📞', title: 'Emma calls you shortly', desc: 'Our AI assistant will call to schedule your free measurement — usually within 5 minutes.' },
+                { icon: '📐', title: 'Free in-home measurement', desc: 'A team member visits, takes exact measurements, and walks through your project.' },
+                { icon: '💰', title: 'Exact quote confirmed', desc: 'We lock in the final number — no surprises. Most projects land near the middle of your estimate.' },
+                { icon: '🔨', title: 'Installation in 2–3 days', desc: 'Our licensed crew handles everything: demo, delivery, and full installation.' },
+              ].map((step, i) => (
+                <div key={i} className="flex gap-3 items-start">
+                  <div className="text-xl flex-shrink-0 mt-0.5">{step.icon}</div>
+                  <div>
+                    <div className="font-semibold text-stone-900 text-sm">{step.title}</div>
+                    <div className="text-stone-500 text-xs mt-0.5 leading-relaxed">{step.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-center text-stone-400 text-xs mb-6">
+            Confirmation text sent to <strong>{submitData?.phone}</strong>
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link to="/" className="flex-1 border border-stone-300 text-stone-700 font-semibold px-6 py-3 rounded-xl text-sm text-center">
+              Back to Home
+            </Link>
+            <a href="tel:+18332017849" className="flex-1 bg-wood-600 hover:bg-wood-700 text-white font-semibold px-6 py-3 rounded-xl text-sm text-center transition-colors">
+              Call (833) 201-7849
+            </a>
           </div>
         </div>
       </div>

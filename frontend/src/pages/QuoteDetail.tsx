@@ -83,7 +83,7 @@ export default function QuoteDetail() {
 
     try {
       await axios.delete(`/quotes/${quote.id}`);
-      navigate('/quotes');
+      navigate('/admin/quotes');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to delete quote');
     }
@@ -94,7 +94,7 @@ export default function QuoteDetail() {
 
     try {
       const response = await axios.post(`/quotes/${quote.id}/duplicate`);
-      navigate(`/quotes/${response.data.id}`);
+      navigate(`/admin/quotes/${response.data.id}`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to duplicate quote');
     }
@@ -145,7 +145,7 @@ export default function QuoteDetail() {
     return (
       <div className="card text-center py-12">
         <p className="text-gray-500">Quote not found</p>
-        <button onClick={() => navigate('/quotes')} className="btn-primary mt-4">
+        <button onClick={() => navigate('/admin/quotes')} className="btn-primary mt-4">
           Back to Quotes
         </button>
       </div>
@@ -157,7 +157,7 @@ export default function QuoteDetail() {
       {/* Header */}
       <div className="mb-8">
         <button
-          onClick={() => navigate('/quotes')}
+          onClick={() => navigate('/admin/quotes')}
           className="text-blue-600 hover:text-blue-700 mb-4 flex items-center"
         >
           <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,4 +1,36 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+
+const MARQUEE_ITEMS = [
+  '500+ Kitchens Installed',
+  'Licensed & Insured in Florida',
+  '16+ Years Experience',
+  'Free In-Home Measurement',
+  "Orlando's Trusted Cabinet Installer",
+  'All Cabinet Brands Welcome',
+  '2–3 Day Installation',
+  'Satisfaction Guaranteed',
+]
+
+const BEFORE_AFTER = [
+  { before: '/images/before-1.jpeg', after: '/images/after-1.jpeg' },
+  { before: '/images/before-2.jpeg', after: '/images/after-2.jpeg' },
+  { before: '/images/before-3.jpeg', after: '/images/after-3.jpeg' },
+  { before: '/images/before-4.jpeg', after: '/images/after-4.jpeg' },
+  { before: '/images/before-5.webp', after: '/images/after-5.webp' },
+  { before: '/images/before-6.webp', after: '/images/after-6.webp' },
+  { before: '/images/before-7.webp', after: '/images/after-7.webp' },
+]
+const KITCHEN_SINGLES = [
+  '/images/kitchen-1.jpeg',
+  '/images/kitchen-3.jpeg',
+  '/images/kitchen-4.webp',
+  '/images/kitchen-5.webp',
+  '/images/kitchen-6.webp',
+  '/images/kitchen-7.webp',
+  '/images/kitchen-8.webp',
+  '/images/kitchen-9.webp',
+]
 
 const SERVICES = [
   {
@@ -133,6 +165,17 @@ const SERVICE_AREAS = [
 ]
 
 export default function Home() {
+  const [lightbox, setLightbox] = useState<{ type: 'pair'; idx: number } | { type: 'single'; src: string } | null>(null)
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+
+  const handleHeroMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    setMousePos({
+      x: (e.clientX - r.left - r.width / 2) / (r.width / 2),
+      y: (e.clientY - r.top - r.height / 2) / (r.height / 2),
+    })
+  }
+
   return (
     <div>
       {/* JSON-LD FAQ Schema */}
@@ -150,12 +193,16 @@ export default function Home() {
       })}} />
 
       {/* HERO */}
-      <section className="relative overflow-hidden">
+      <section
+        className="relative overflow-hidden"
+        onMouseMove={handleHeroMouseMove}
+        onMouseLeave={() => setMousePos({ x: 0, y: 0 })}
+      >
         <div className="absolute inset-0">
           <img src="/images/hero-bg.png" alt="Beautiful kitchen by Cabinets of Orlando" className="w-full h-full object-cover object-center" />
           <div className="absolute inset-0 bg-navy-900/70" />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-36 pb-20 md:py-32">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-wood-500/20 border border-wood-500/30 rounded-full px-4 py-1.5 mb-6">
               <div className="w-2 h-2 bg-wood-400 rounded-full animate-pulse" />
@@ -187,7 +234,65 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* Floating stat badges — desktop only, parallax on mouse move */}
+        <div className="hidden lg:block pointer-events-none select-none" aria-hidden="true">
+          <div
+            className="absolute rounded-2xl px-5 py-4 text-center"
+            style={{
+              top: '22%', right: '14%',
+              background: 'rgba(255,255,255,0.12)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              transform: `translate(${mousePos.x * 18}px, ${mousePos.y * 18}px)`,
+              transition: 'transform 0.12s ease-out',
+            }}
+          >
+            <div className="text-3xl font-bold text-wood-400">500+</div>
+            <div className="text-xs text-stone-300 mt-0.5 font-medium tracking-wide">Kitchens Installed</div>
+          </div>
+          <div
+            className="absolute rounded-2xl px-5 py-4 text-center"
+            style={{
+              top: '46%', right: '5%',
+              background: 'rgba(255,255,255,0.12)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              transform: `translate(${mousePos.x * -10}px, ${mousePos.y * -14}px)`,
+              transition: 'transform 0.12s ease-out',
+            }}
+          >
+            <div className="text-3xl font-bold text-wood-400">2–3</div>
+            <div className="text-xs text-stone-300 mt-0.5 font-medium tracking-wide">Days to Install</div>
+          </div>
+          <div
+            className="absolute rounded-2xl px-5 py-4 text-center"
+            style={{
+              bottom: '18%', right: '20%',
+              background: 'rgba(255,255,255,0.12)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              transform: `translate(${mousePos.x * 22}px, ${mousePos.y * 8}px)`,
+              transition: 'transform 0.12s ease-out',
+            }}
+          >
+            <div className="text-2xl font-bold text-wood-400">Free</div>
+            <div className="text-xs text-stone-300 mt-0.5 font-medium tracking-wide">Measurement</div>
+          </div>
+        </div>
       </section>
+
+      {/* SOCIAL PROOF MARQUEE */}
+      <div className="bg-navy-950 overflow-hidden py-4 border-b border-navy-800">
+        <div className="flex animate-marquee whitespace-nowrap">
+          {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
+            <span key={i} className="inline-flex items-center gap-3 mx-8 text-stone-400 text-sm font-medium">
+              <span className="text-wood-500 text-base leading-none">★</span>
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
 
       {/* TRUST BAR */}
       <section className="bg-navy-800 border-b border-navy-700">
@@ -391,40 +496,58 @@ export default function Home() {
       </section>
 
       {/* BEFORE / AFTER GALLERY */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-stone-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-stone-900 mb-4">Before & After</h2>
-            <p className="text-stone-500 text-lg max-w-xl mx-auto">Real kitchens transformed by our team in Orlando.</p>
+            <p className="text-stone-500 text-lg max-w-xl mx-auto">Real Orlando kitchens transformed by our team. Click any photo to expand.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { before: '/images/before-1.jpeg', after: '/images/after-1.jpeg' },
-              { before: '/images/before-2.jpeg', after: '/images/after-2.jpeg' },
-              { before: '/images/before-3.jpeg', after: '/images/after-3.jpeg' },
-            ].map((pair, i) => (
-              <div key={i} className="rounded-2xl overflow-hidden border border-stone-200 shadow-sm">
-                <div className="grid grid-cols-2">
-                  <div className="relative">
-                    <img src={pair.before} alt="Before installation" className="w-full h-48 object-cover"/>
-                    <div className="absolute bottom-2 left-2 bg-stone-900/70 text-white text-xs font-semibold px-2 py-1 rounded">Before</div>
+
+          {/* Before/After pairs — tall cards, clickable */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {BEFORE_AFTER.map((pair, i) => (
+              <button
+                key={i}
+                onClick={() => setLightbox({ type: 'pair', idx: i })}
+                className="relative rounded-2xl overflow-hidden border border-stone-200 shadow-sm group cursor-pointer w-full text-left"
+              >
+                <div className="grid grid-cols-2 h-72">
+                  <div className="relative overflow-hidden">
+                    <img src={pair.before} alt="Before installation" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+                    <div className="absolute bottom-2 left-2 bg-stone-900/75 text-white text-xs font-bold px-2 py-1 rounded">Before</div>
                   </div>
-                  <div className="relative">
-                    <img src={pair.after} alt="After installation" className="w-full h-48 object-cover"/>
-                    <div className="absolute bottom-2 right-2 bg-wood-500/90 text-white text-xs font-semibold px-2 py-1 rounded">After</div>
+                  <div className="relative overflow-hidden">
+                    <img src={pair.after} alt="After installation" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+                    <div className="absolute bottom-2 right-2 bg-wood-500/90 text-white text-xs font-bold px-2 py-1 rounded">After</div>
                   </div>
                 </div>
-              </div>
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 text-stone-800 text-xs font-semibold shadow-lg">
+                    Click to expand
+                  </div>
+                </div>
+              </button>
             ))}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6 max-w-2xl mx-auto">
-            <div className="rounded-2xl overflow-hidden border border-stone-200 shadow-sm">
-              <img src="/images/kitchen-1.jpeg" alt="Kitchen cabinet installation Orlando" className="w-full h-52 object-cover"/>
-            </div>
-            <div className="rounded-2xl overflow-hidden border border-stone-200 shadow-sm">
-              <img src="/images/kitchen-3.jpeg" alt="Kitchen cabinet installation Central Florida" className="w-full h-52 object-cover"/>
-            </div>
+
+          {/* Standalone kitchen photos */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
+            {KITCHEN_SINGLES.map((src, i) => (
+              <button
+                key={i}
+                onClick={() => setLightbox({ type: 'single', src })}
+                className="relative rounded-2xl overflow-hidden border border-stone-200 shadow-sm group cursor-pointer w-full"
+              >
+                <img src={src} alt="Kitchen cabinet installation Orlando" className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"/>
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 text-stone-800 text-xs font-semibold shadow-lg">
+                    Click to expand
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
+
           <div className="text-center mt-10">
             <Link to="/get-a-quote"
               className="inline-block bg-wood-500 hover:bg-wood-600 text-white font-bold px-8 py-3.5 rounded-xl transition-all hover:scale-105">
@@ -433,6 +556,40 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Lightbox */}
+      {lightbox !== null && (
+        <div
+          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            className="absolute top-4 right-5 text-white/60 hover:text-white text-4xl leading-none font-light"
+            onClick={() => setLightbox(null)}
+          >
+            ×
+          </button>
+          <div
+            className="relative max-w-5xl w-full"
+            onClick={e => e.stopPropagation()}
+          >
+            {lightbox.type === 'pair' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="relative">
+                  <img src={BEFORE_AFTER[lightbox.idx].before} alt="Before" className="w-full h-auto rounded-xl max-h-[80vh] object-contain"/>
+                  <div className="absolute bottom-3 left-3 bg-stone-900/80 text-white font-bold text-sm px-3 py-1.5 rounded">Before</div>
+                </div>
+                <div className="relative">
+                  <img src={BEFORE_AFTER[lightbox.idx].after} alt="After" className="w-full h-auto rounded-xl max-h-[80vh] object-contain"/>
+                  <div className="absolute bottom-3 right-3 bg-wood-500/90 text-white font-bold text-sm px-3 py-1.5 rounded">After</div>
+                </div>
+              </div>
+            ) : (
+              <img src={lightbox.src} alt="Kitchen installation" className="w-full h-auto max-h-[85vh] object-contain rounded-xl"/>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* FINAL CTA */}
       <section className="relative py-20 bg-navy-900 overflow-hidden">

@@ -1,306 +1,305 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const COLLECTIONS = [
   {
-    name: 'Essential & Charm',
-    slug: 'essential-charm',
-    skus: 265,
-    styles: ['SA', 'IB', 'AG', 'SW', 'GR', 'SE', 'NB', 'TC'],
-    description: 'The perfect blend of timeless design and everyday affordability. Clean lines, solid construction, and a wide variety of door styles make Essential & Charm the most versatile collection in our catalog.',
+    name: 'Essential Collection',
+    bgImg: '/images/kitchens/essential.webp',
+    desc: 'Timeless shaker design in 3 clean finishes. The most versatile and affordable full-cabinet collection in our catalog.',
+    priceRange: 'Mid-Range · $320–$400 / LF installed',
+    badge: '',
     attributes: {
-      'Door Style': 'Full Overlay',
+      'Door Style': 'Shaker',
       'Box Construction': 'Plywood',
-      'Finish Options': '8 styles',
-      'Cabinet Types': 'Wall, Base, Tall, Specialty, Vanity',
+      'Finish Options': '3 styles',
       'Assembly': 'Pre-assembled',
       'Warranty': 'Limited Lifetime',
     },
-    priceRange: 'Mid-Range',
-    badge: 'Most Popular',
-    badgeColor: 'bg-wood-600',
-    borderColor: 'border-amber-300',
-    bgColor: 'bg-amber-50',
+    styles: [
+      { name: 'Shaker White',   img: '/images/styles/essential-shaker-white.jpg' },
+      { name: 'Shaker Gray',    img: '/images/styles/essential-shaker-gray.jpg' },
+      { name: 'Shaker Espresso',img: '/images/styles/essential-shaker-espresso.jpg' },
+    ],
   },
   {
-    name: 'Classical & Double Shaker',
-    slug: 'classical-double-shaker',
-    skus: 265,
-    styles: ['AW', 'AC', 'CW', 'DDW', 'DSG'],
-    description: 'Traditional raised-panel doors and double shaker profiles that bring warmth and elegance to any kitchen. A perennial favorite for homeowners who want a classic, timeless look.',
+    name: 'Charm Collection',
+    bgImg: '/images/kitchens/charm.webp',
+    desc: '8 bold colors — from navy to sage to rustic wood. The most popular collection for homeowners who want personality in the kitchen.',
+    priceRange: 'Mid-Range · $390–$490 / LF installed',
+    badge: 'Most Popular',
     attributes: {
-      'Door Style': 'Raised Panel & Double Shaker',
+      'Door Style': 'Shaker',
       'Box Construction': 'Plywood',
-      'Finish Options': '5 styles',
-      'Cabinet Types': 'Wall, Base, Tall, Specialty, Vanity',
+      'Finish Options': '8 styles',
       'Assembly': 'Pre-assembled',
       'Warranty': 'Limited Lifetime',
     },
-    priceRange: 'Mid-Range',
-    badge: '',
-    badgeColor: '',
-    borderColor: 'border-stone-300',
-    bgColor: 'bg-stone-50',
+    styles: [
+      { name: 'Navy Blue',      img: '/images/styles/charm-navy-blue.jpg' },
+      { name: 'Iron Black',     img: '/images/styles/charm-iron-black.jpg' },
+      { name: 'Treasure Chest', img: '/images/styles/charm-treasure-chest.jpg' },
+      { name: 'Aston Green',    img: '/images/styles/charm-aston-green.jpg' },
+      { name: 'Smokey Ash',     img: '/images/styles/charm-smokey-ash.jpg' },
+      { name: 'Luna Grey',      img: '/images/styles/charm-luna-grey.jpg' },
+      { name: 'Rustic Wood',    img: '/images/styles/charm-rustic-wood.jpg' },
+      { name: 'Sage Breeze',    img: '/images/styles/charm-sage-breeze.jpg' },
+    ],
   },
   {
     name: 'Slim Shaker',
-    slug: 'slim-shaker',
-    skus: 232,
-    styles: ['SDW', 'SWO', 'SAG'],
-    description: 'A modern take on the classic shaker style with slimmer profiles and cleaner lines. Ideal for contemporary kitchens seeking understated sophistication.',
+    bgImg: '/images/kitchens/slim.jpg',
+    desc: 'A modern take on shaker with slimmer rails and cleaner lines. Ideal for contemporary kitchens that want understated sophistication.',
+    priceRange: 'Mid-Range · $480–$600 / LF installed',
+    badge: 'Trending',
     attributes: {
-      'Door Style': 'Slim Shaker Profile',
+      'Door Style': 'Slim Shaker',
       'Box Construction': 'Plywood',
-      'Finish Options': '3 styles',
-      'Cabinet Types': 'Wall, Base, Tall, Specialty, Vanity',
+      'Finish Options': '5 styles',
       'Assembly': 'Pre-assembled',
       'Warranty': 'Limited Lifetime',
     },
-    priceRange: 'Mid-Range',
-    badge: 'Trending',
-    badgeColor: 'bg-slate-700',
-    borderColor: 'border-slate-300',
-    bgColor: 'bg-slate-50',
+    styles: [
+      { name: 'Dove White',  img: '/images/styles/slim-dove-white.jpg' },
+      { name: 'White Oak',   img: '/images/styles/slim-white-oak.jpg' },
+      { name: 'Aston Green', img: '/images/styles/slim-aston-green.jpg' },
+      { name: 'Amber Oak',   img: '/images/styles/slim-amber-oak.jpg' },
+      { name: 'Iron Black',  img: '/images/styles/slim-iron-black.jpg' },
+    ],
   },
   {
-    name: 'Frameless High Gloss',
-    slug: 'frameless-high-gloss',
-    skus: 160,
-    styles: ['HW', 'HG'],
-    description: 'European-style frameless construction with a mirror-like high gloss finish. Clean, bold, and luxurious — for kitchens that make a statement.',
+    name: 'Double Shaker',
+    bgImg: '/images/kitchens/double.webp',
+    desc: 'Double-rail shaker profiles deliver a rich, architectural feel. Available in two refined finishes.',
+    priceRange: 'Mid-Range · $450–$560 / LF installed',
+    badge: '',
+    attributes: {
+      'Door Style': 'Double Shaker',
+      'Box Construction': 'Plywood',
+      'Finish Options': '2 styles',
+      'Assembly': 'Pre-assembled',
+      'Warranty': 'Limited Lifetime',
+    },
+    styles: [
+      { name: 'Smokey Grey', img: '/images/styles/double-smokey-grey.jpg' },
+      { name: 'Dove White',  img: '/images/styles/double-dove-white.jpg' },
+    ],
+  },
+  {
+    name: 'Classic Style',
+    bgImg: '/images/kitchens/builder.webp',
+    desc: 'Traditional raised-panel doors that bring warmth and elegance to any kitchen. A timeless look that never goes out of style.',
+    priceRange: 'Mid-Range · $450–$560 / LF installed',
+    badge: '',
+    attributes: {
+      'Door Style': 'Raised Panel',
+      'Box Construction': 'Plywood',
+      'Finish Options': '3 styles',
+      'Assembly': 'Pre-assembled',
+      'Warranty': 'Limited Lifetime',
+    },
+    styles: [
+      { name: 'Charleston White',    img: '/images/styles/classic-charleston-white.jpg' },
+      { name: 'Aspen White',         img: '/images/styles/classic-aspen-white.jpg' },
+      { name: 'Aspen Charcoal Gray', img: '/images/styles/classic-aspen-charcoal-gray.jpg' },
+    ],
+  },
+  {
+    name: 'Frameless European',
+    bgImg: '/images/kitchens/frameless.webp',
+    desc: 'Full-access European frameless construction with glass, gloss, and wood-look finishes. For bold, modern kitchens.',
+    priceRange: 'Premium · $580–$720 / LF installed',
+    badge: 'Premium',
     attributes: {
       'Door Style': 'Flat Panel, Frameless',
       'Box Construction': 'Plywood',
-      'Finish Options': '2 styles (White & Graphite)',
-      'Cabinet Types': 'Wall, Base, Tall, Specialty',
+      'Finish Options': '8 styles',
       'Assembly': 'Pre-assembled',
       'Warranty': 'Limited Lifetime',
     },
-    priceRange: 'Premium',
-    badge: 'Premium',
-    badgeColor: 'bg-zinc-800',
-    borderColor: 'border-zinc-300',
-    bgColor: 'bg-zinc-50',
+    styles: [
+      { name: 'High Gloss White', img: '/images/styles/frameless-high-gloss-white.jpg' },
+      { name: 'High Gloss Gray',  img: '/images/styles/frameless-high-gloss-gray.jpg' },
+      { name: 'Crystal Glass',    img: '/images/styles/frameless-crystal-glass.jpg' },
+      { name: 'Midnight Glass',   img: '/images/styles/frameless-midnight-glass.jpg' },
+      { name: 'Matt Black',       img: '/images/styles/frameless-matt-black.jpg' },
+      { name: 'Matt Ivory',       img: '/images/styles/frameless-matt-ivory.jpg' },
+      { name: 'Oak Blonde',       img: '/images/styles/frameless-oak-blonde.jpg' },
+      { name: 'Oak Shade',        img: '/images/styles/frameless-oak-shade.jpg' },
+    ],
   },
   {
     name: 'Builder Grade',
-    slug: 'builder-grade',
-    skus: 134,
-    styles: ['FW', 'FG', 'FE'],
-    description: 'Solid, dependable cabinets at the best price point in our catalog. Ideal for rental properties, investment flips, or budget-conscious renovations without sacrificing quality.',
+    bgImg: '/images/kitchens/classic.webp',
+    desc: 'Reliable cabinets at the best price point in our catalog. Perfect for rental properties, investment flips, and budget-conscious renovations.',
+    priceRange: 'Budget-Friendly · $280–$360 / LF installed',
+    badge: 'Best Value',
     attributes: {
       'Door Style': 'Flat Panel',
       'Box Construction': 'Particle Board',
       'Finish Options': '3 styles',
-      'Cabinet Types': 'Wall, Base, Tall',
       'Assembly': 'Pre-assembled',
       'Warranty': '1-Year',
     },
-    priceRange: 'Budget-Friendly',
-    badge: 'Best Value',
-    badgeColor: 'bg-orange-600',
-    borderColor: 'border-orange-200',
-    bgColor: 'bg-orange-50',
+    styles: [
+      { name: 'Floral White',    img: '/images/styles/builder-floral-white.jpg' },
+      { name: 'Floral Espresso', img: '/images/styles/builder-floral-espresso.jpg' },
+      { name: 'Floral Gray',     img: '/images/styles/builder-floral-gray.jpg' },
+    ],
   },
 ]
 
-const CATEGORIES = [
-  {
-    name: 'Wall Cabinets',
-    desc: 'Mounted above countertops for storage and display.',
-    icon: '🗄️',
-  },
-  {
-    name: 'Base Cabinets',
-    desc: 'Floor-level cabinets that anchor the kitchen layout.',
-    icon: '🪵',
-  },
-  {
-    name: 'Tall Cabinets',
-    desc: 'Full-height pantry and utility cabinets.',
-    icon: '📦',
-  },
-  {
-    name: 'Specialty Cabinets',
-    desc: 'Corner units, lazy susans, pull-outs and more.',
-    icon: '⚙️',
-  },
-  {
-    name: 'Vanity Cabinets',
-    desc: 'Designed for bathroom vanity applications.',
-    icon: '🪞',
-  },
-]
+const BADGE_COLORS: Record<string, string> = {
+  'Most Popular': 'bg-wood-600',
+  'Trending':     'bg-slate-700',
+  'Premium':      'bg-navy-900',
+  'Best Value':   'bg-orange-600',
+}
 
 export default function Collections() {
+  const [selectedStyle, setSelectedStyle] = useState<{ img: string; name: string; collection: string } | null>(null)
+
   return (
     <div>
-      {/* JSON-LD Product Catalog Schema */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'ItemList',
-        name: 'Cabinet Collections — Cabinets of Orlando',
-        numberOfItems: 5,
-        itemListElement: COLLECTIONS.map((col, i) => ({
-          '@type': 'ListItem',
-          position: i + 1,
-          item: {
-            '@type': 'Product',
-            name: col.name,
-            description: col.description,
-            brand: { '@type': 'Brand', name: 'Cabinets of Orlando' },
-            offers: {
-              '@type': 'Offer',
-              availability: 'https://schema.org/InStock',
-              priceCurrency: 'USD',
-              seller: { '@type': 'Organization', name: 'Cabinets of Orlando' },
-            },
-          },
-        })),
-      })}} />
-
       {/* Hero */}
-      <section className="bg-stone-950 py-16">
+      <section className="relative bg-navy-900 py-16 overflow-hidden">
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url('/images/hero-bg.png')", backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="text-xs text-stone-500 mb-4 flex items-center gap-2">
+            <Link to="/" className="hover:text-stone-300">Home</Link>
+            <span>/</span>
+            <span className="text-stone-300">Collections</span>
+          </nav>
+          <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
+            Our Cabinet <span className="text-wood-400">Collections</span>
+          </h1>
+          <p className="text-stone-400 text-lg max-w-2xl">
+            7 collections · 32 door styles. Every finish from builder-grade to European frameless —
+            all installed by our licensed Central Florida team.
+          </p>
+        </div>
+      </section>
+
+      {/* Collections grid */}
+      <section className="py-14 bg-stone-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl">
-            <nav className="text-xs text-stone-500 mb-4 flex items-center gap-2">
-              <Link to="/" className="hover:text-stone-300">Home</Link>
-              <span>/</span>
-              <span className="text-stone-300">Collections</span>
-            </nav>
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
-              Our Cabinet <span className="text-wood-400">Collections</span>
-            </h1>
-            <p className="text-stone-400 text-lg">
-              5 collections. 1,044+ SKUs. Every style, every budget.
-              Browse our full catalog and request a free quote when you're ready.
-            </p>
-          </div>
-        </div>
-      </section>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {COLLECTIONS.map(col => (
+              <div key={col.name} className="rounded-2xl overflow-hidden shadow-sm border border-stone-200 bg-white flex flex-col">
 
-      {/* Category Types */}
-      <section className="bg-stone-900 border-b border-stone-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-wrap gap-3 justify-center">
-            {CATEGORIES.map(cat => (
-              <div key={cat.name} className="flex items-center gap-2 bg-stone-800 rounded-full px-4 py-2">
-                <span className="text-base">{cat.icon}</span>
-                <span className="text-stone-300 text-sm font-medium">{cat.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Collections List */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          {COLLECTIONS.map((col, index) => (
-            <div
-              key={col.name}
-              className={`border-2 ${col.borderColor} ${col.bgColor} rounded-2xl overflow-hidden`}
-            >
-              <div className="p-8 md:p-10">
-                <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-xs font-bold text-stone-400 uppercase tracking-widest">
-                        Collection {index + 1} of 5
+                {/* Kitchen photo header */}
+                <div className="relative h-56 overflow-hidden">
+                  <img
+                    src={col.bgImg}
+                    alt={`${col.name} kitchen`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  {col.badge && (
+                    <div className="absolute top-3 left-3">
+                      <span className={`${BADGE_COLORS[col.badge] ?? 'bg-stone-700'} text-white text-xs font-bold px-2.5 py-1 rounded-full`}>
+                        {col.badge}
                       </span>
-                      {col.badge && (
-                        <span className={`${col.badgeColor} text-white text-xs font-semibold px-2.5 py-0.5 rounded-full`}>
-                          {col.badge}
-                        </span>
-                      )}
                     </div>
-                    <h2 className="text-2xl md:text-3xl font-bold text-stone-900">{col.name}</h2>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-stone-900">{col.skus}</div>
-                    <div className="text-xs text-stone-500">Available SKUs</div>
+                  )}
+                  <div className="absolute bottom-0 left-0 p-4">
+                    <h2 className="text-white font-bold text-lg leading-tight">{col.name}</h2>
+                    <div className="text-stone-300 text-xs mt-0.5">{col.priceRange}</div>
                   </div>
                 </div>
 
-                <p className="text-stone-600 text-base leading-relaxed mb-8 max-w-3xl">
-                  {col.description}
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Attributes */}
-                  <div>
-                    <h3 className="text-sm font-bold text-stone-700 uppercase tracking-wide mb-3">
-                      Product Attributes
-                    </h3>
-                    <div className="space-y-2">
-                      {Object.entries(col.attributes).map(([key, val]) => (
-                        <div key={key} className="flex justify-between items-center py-1.5 border-b border-stone-200/60">
-                          <span className="text-sm text-stone-500">{key}</span>
-                          <span className="text-sm font-semibold text-stone-800">{val}</span>
+                {/* Door swatches */}
+                <div className="px-4 pt-4 pb-3 border-b border-stone-100">
+                  <div className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2.5">
+                    Available Colors · {col.styles.length} styles · <span className="text-wood-500 normal-case font-normal">click to enlarge</span>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {col.styles.map(s => (
+                      <button
+                        key={s.name}
+                        onClick={() => setSelectedStyle({ img: s.img, name: s.name, collection: col.name })}
+                        className="group relative focus:outline-none"
+                        title={s.name}
+                      >
+                        <div className="w-11 h-[3.5rem] bg-stone-400 rounded-lg overflow-hidden border-2 border-stone-200 group-hover:border-wood-400 group-hover:scale-110 transition-all flex items-center justify-center p-0.5">
+                          <img src={s.img} alt={s.name} className="h-full w-auto object-contain" />
                         </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Styles */}
-                  <div>
-                    <h3 className="text-sm font-bold text-stone-700 uppercase tracking-wide mb-3">
-                      Available Styles
-                    </h3>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {col.styles.map(style => (
-                        <span key={style}
-                          className="bg-white border border-stone-300 text-stone-700 text-sm font-mono font-semibold px-3 py-1.5 rounded-lg">
-                          {style}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="bg-white border border-stone-200 rounded-xl p-4">
-                      <div className="text-xs text-stone-400 mb-1">Price Range</div>
-                      <div className="font-bold text-stone-900">{col.priceRange}</div>
-                      <div className="text-xs text-stone-400 mt-2">
-                        Price varies by kitchen size and number of cabinets. Get a quote for your exact project.
-                      </div>
-                    </div>
+                        {/* tooltip */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 bg-stone-900 text-white text-xs px-2 py-0.5 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                          {s.name}
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Link to="/get-a-quote"
-                    className="bg-stone-950 hover:bg-stone-800 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-all">
+                {/* Description + specs */}
+                <div className="p-4 flex-1 flex flex-col">
+                  <p className="text-stone-600 text-sm leading-relaxed mb-4">{col.desc}</p>
+
+                  <div className="space-y-1.5 mb-5">
+                    {Object.entries(col.attributes).map(([k, v]) => (
+                      <div key={k} className="flex justify-between items-center text-xs border-b border-stone-100 pb-1.5">
+                        <span className="text-stone-400">{k}</span>
+                        <span className="font-semibold text-stone-700">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Link
+                    to="/get-a-quote"
+                    className="mt-auto bg-navy-900 hover:bg-navy-800 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors text-center"
+                  >
                     Get Quote for {col.name} →
                   </Link>
-                  <a href="tel:+18332017849"
-                    className="border border-stone-300 hover:border-stone-500 text-stone-600 hover:text-stone-900 font-semibold px-6 py-2.5 rounded-xl text-sm transition-all">
-                    Call for Pricing
-                  </a>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Categories Detail */}
-      <section className="py-16 bg-stone-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-stone-900 mb-8 text-center">
-            Cabinet Types Available Across All Collections
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {CATEGORIES.map(cat => (
-              <div key={cat.name} className="bg-white border border-stone-200 rounded-xl p-5 text-center">
-                <div className="text-3xl mb-3">{cat.icon}</div>
-                <div className="font-bold text-stone-900 text-sm mb-1">{cat.name}</div>
-                <div className="text-stone-500 text-xs leading-relaxed">{cat.desc}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* Style lightbox */}
+      {selectedStyle && (
+        <div
+          className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-6"
+          onClick={() => setSelectedStyle(null)}
+        >
+          <div
+            className="relative bg-white rounded-3xl overflow-hidden shadow-2xl w-full max-w-xs"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSelectedStyle(null)}
+              className="absolute top-3 right-3 z-10 w-8 h-8 bg-black/30 hover:bg-black/50 text-white rounded-full flex items-center justify-center text-lg leading-none transition-colors"
+            >
+              ×
+            </button>
+            <div className="bg-stone-400 flex items-center justify-center p-8" style={{ height: '280px' }}>
+              <img
+                src={selectedStyle.img}
+                alt={selectedStyle.name}
+                className="h-full w-auto object-contain drop-shadow-xl"
+              />
+            </div>
+            <div className="p-5">
+              <div className="text-xs text-stone-400 font-medium mb-1 uppercase tracking-wide">{selectedStyle.collection}</div>
+              <h3 className="text-lg font-bold text-stone-900 mb-4">{selectedStyle.name}</h3>
+              <Link
+                to="/get-a-quote"
+                onClick={() => setSelectedStyle(null)}
+                className="block w-full bg-wood-600 hover:bg-wood-700 text-white font-semibold px-5 py-3 rounded-xl text-sm transition-colors text-center"
+              >
+                Get Quote in This Style →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CTA */}
-      <section className="py-16 bg-stone-950">
-        <div className="max-w-3xl mx-auto px-4 text-center">
+      <section className="relative py-16 bg-navy-900 overflow-hidden">
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url('/images/after-2.jpeg')", backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <div className="relative max-w-3xl mx-auto px-4 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
             Found Your Style? Let's Get You a Price.
           </h2>

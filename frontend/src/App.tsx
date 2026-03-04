@@ -8,6 +8,7 @@ import Collections from './pages/public/Collections'
 import GetQuote from './pages/public/GetQuote'
 import Contact from './pages/public/Contact'
 import InstallOnly from './pages/public/InstallOnly'
+import Schedule from './pages/public/Schedule'
 
 // Admin layout + pages
 import Layout from './components/Layout'
@@ -31,6 +32,7 @@ function App() {
         <Route path="/get-a-quote" element={<GetQuote />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/install-only" element={<InstallOnly />} />
+        <Route path="/schedule" element={<Schedule />} />
       </Route>
 
       {/* Login */}

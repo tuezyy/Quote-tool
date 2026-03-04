@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../utils/prisma';
+import { sendCustomerConfirmation, sendInstallerNotification } from '../services/sms';
 
 const router = Router();
 
@@ -290,6 +291,8 @@ router.post(
         timeline, notes,
         items, // optional: [{productId, itemCode, description, qty, customerPrice}]
         quoteType, // 'estimate' | 'detailed'
+        estimateMin, estimateMax, // frontend-calculated estimate range
+        style, // selected door style
       } = req.body;
 
       // Upsert customer
@@ -320,6 +323,8 @@ router.post(
         `WEBSITE QUOTE REQUEST (${quoteType === 'detailed' ? 'DETAILED BUILDER' : 'ESTIMATE'})`,
         `Kitchen Size: ${kitchenSize}`,
         `Collection Preference: ${collection}`,
+        style ? `Door Style: ${style}` : '',
+        estimateMin && estimateMax ? `Estimate Range: $${estimateMin.toLocaleString()}–$${estimateMax.toLocaleString()}` : '',
         `Timeline: ${timeline}`,
         items?.length ? `\nSELECTED ITEMS (${items.length} products):\n${itemLines}\nItems Subtotal: $${itemsTotal.toFixed(2)}` : '',
         notes ? `\nAdditional Notes: ${notes}` : '',
@@ -345,11 +350,21 @@ router.post(
       }
 
       // Create draft quote if we have a collection with at least one style
+      let quoteNumber = '';
+      let quote: { id: string } | null = null;
+
+      // Pick installer from DB (first available with a phone), fall back to env var
+      const installerUser = await prisma.user.findFirst({
+        where: { role: 'INSTALLER', isAvailable: true, phone: { not: null } },
+        orderBy: { createdAt: 'asc' },
+      });
+      const installerPhone = installerUser?.phone || process.env.INSTALLER_PHONE || '';
+
       if (webCollection && adminUser && webCollection.styles.length > 0) {
         const quoteCount = await prisma.quote.count();
-        const quoteNumber = `Q-${new Date().getFullYear()}-WEB-${String(quoteCount + 1).padStart(4, '0')}`;
+        quoteNumber = `Q-${new Date().getFullYear()}-WEB-${String(quoteCount + 1).padStart(4, '0')}`;
 
-        await prisma.quote.create({
+        quote = await prisma.quote.create({
           data: {
             quoteNumber,
             customerId: customer.id,
@@ -367,18 +382,45 @@ router.post(
             total: 0,
             msrpTotal: 0,
             expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            installerPhone: installerPhone || null,
           },
         });
+      }
+
+      // Trigger Vapi outbound call to customer (non-blocking)
+      if (quoteNumber && quote) {
+        const { triggerOutboundCall } = await import('../services/vapi');
+        triggerOutboundCall(phone, `${firstName} ${lastName}`, quoteNumber, quote.id)
+          .then(() => console.log(`[Vapi] Outbound call triggered for ${quoteNumber}`))
+          .catch(err => console.error('[Vapi] Call trigger failed:', err.message));
+      }
+
+      // Fire SMS notifications (non-blocking — don't let SMS failure break the response)
+      if (quoteNumber) {
+        const customerName = `${firstName} ${lastName}`;
+
+        Promise.all([
+          sendCustomerConfirmation(firstName, phone, quoteNumber, estimateMin, estimateMax).catch(
+            (e) => console.error('[SMS] Customer confirmation failed:', e.message)
+          ),
+          installerPhone
+            ? sendInstallerNotification(
+                installerPhone,
+                customerName,
+                phone,
+                kitchenSize,
+                collection,
+                quoteNumber
+              ).catch((e) => console.error('[SMS] Installer notification failed:', e.message))
+            : Promise.resolve(),
+        ]);
       }
 
       res.json({
         success: true,
         message: 'Quote request received. We will contact you within 2 business hours.',
-        customer: {
-          firstName,
-          lastName,
-          email,
-        },
+        quoteNumber: quoteNumber || null,
+        customer: { firstName, lastName, email },
       });
     } catch (err) {
       console.error('Quote request error:', err);
