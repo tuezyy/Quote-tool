@@ -7,7 +7,9 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const VISION_PROMPT = `Analyze this kitchen photo. Respond ONLY with a JSON object, no explanation, no markdown.
+const VALID_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+const SINGLE_PHOTO_PROMPT = `Analyze this kitchen photo. Respond ONLY with a JSON object, no explanation, no markdown.
 
 Return:
 {
@@ -27,38 +29,62 @@ Rules:
 - replacing: true if existing cabinets are visible in the photo
 - confidence: high if layout is clearly visible, medium if partially visible, low if unclear`;
 
+const TWO_PHOTO_PROMPT = `You are given TWO photos of the SAME kitchen from different angles. Respond ONLY with a JSON object, no explanation, no markdown.
+
+Your task is to synthesize them into a single accurate layout — do NOT add wall lengths together.
+
+Return:
+{
+  "layout": "straight" | "l_shape" | "u_shape" | "island",
+  "walls": { "a": <ft>, "b": <ft>, "c": <ft>, "island": <ft> },
+  "replacing": true | false,
+  "confidence": "high" | "medium" | "low",
+  "notes": "<one brief sentence noting both angles were used>"
+}
+
+Rules:
+- Each wall should appear ONCE — pick the best estimate from whichever photo shows it most clearly
+- If both photos show the same wall, use the average or the clearer estimate — never add them
+- layout: the overall kitchen shape across both angles (straight=single wall, l_shape=two adjacent walls, u_shape=three walls, island=u_shape with center island)
+- walls.a: longest/primary wall in feet (do NOT double-count)
+- walls.b: second wall in feet (0 if straight)
+- walls.c: third wall in feet (0 if straight or l_shape)
+- walls.island: island length in feet (0 unless island layout)
+- replacing: true if existing cabinets are visible in either photo
+- confidence: high if layout is clearly visible across both photos, medium if partially visible, low if unclear`;
+
 // POST /api/public/analyze-kitchen
-router.post('/analyze-kitchen', upload.single('image'), async (req: any, res: any) => {
-  if (!req.file) {
+router.post('/analyze-kitchen', upload.array('images', 2), async (req: any, res: any) => {
+  const files = req.files as Express.Multer.File[];
+  if (!files?.length) {
     return res.status(400).json({ error: 'No image uploaded' });
   }
 
-  const mediaType = (req.file.mimetype || 'image/jpeg') as
-    | 'image/jpeg'
-    | 'image/png'
-    | 'image/gif'
-    | 'image/webp';
-
-  if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mediaType)) {
-    return res.status(400).json({ error: 'Unsupported image type. Use JPEG, PNG, or WEBP.' });
+  for (const file of files) {
+    if (!VALID_MIME_TYPES.includes(file.mimetype)) {
+      return res.status(400).json({ error: 'Unsupported image type. Use JPEG, PNG, or WEBP.' });
+    }
   }
 
   try {
-    const base64 = req.file.buffer.toString('base64');
+    const imageBlocks = files.map(f => ({
+      type: 'image' as const,
+      source: {
+        type: 'base64' as const,
+        media_type: f.mimetype as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+        data: f.buffer.toString('base64'),
+      },
+    }));
+
+    const prompt = files.length === 2 ? TWO_PHOTO_PROMPT : SINGLE_PHOTO_PROMPT;
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 400,
+      max_tokens: 500,
       messages: [
         {
           role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: mediaType, data: base64 },
-            },
-            { type: 'text', text: VISION_PROMPT },
-          ],
+          content: [...imageBlocks, { type: 'text' as const, text: prompt }],
         },
       ],
     });
@@ -88,7 +114,7 @@ router.post('/analyze-kitchen', upload.single('image'), async (req: any, res: an
     if (!['high', 'medium', 'low'].includes(result.confidence)) result.confidence = 'medium';
     if (typeof result.notes !== 'string') result.notes = '';
 
-    res.json(result);
+    res.json({ ...result, photoCount: files.length });
   } catch (err: any) {
     console.error('[KitchenVision] Error:', err.message);
     res.status(500).json({ error: 'Vision analysis failed. Please fill in details manually.' });

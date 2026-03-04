@@ -260,7 +260,10 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
   // Vision state
   const [visionLoading, setVisionLoading] = useState(false)
   const [visionResult, setVisionResult]   = useState<VisionResult | null>(null)
-  const photoInputRef = useRef<HTMLInputElement>(null)
+  const [uploadedPhotos, setUploadedPhotos] = useState<File[]>([])
+  const [photoThumbs, setPhotoThumbs]       = useState<string[]>([])
+  const photo1Ref = useRef<HTMLInputElement>(null)
+  const photo2Ref = useRef<HTMLInputElement>(null)
 
   // Smart estimate from API
   const [apiEst, setApiEst]         = useState<{ min: number; max: number; cabinetCount: number; cabinetPrice: number; installFee: number; demoFee: number } | null>(null)
@@ -294,27 +297,63 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
       .finally(() => setApiEstLoading(false))
   }, [step]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Photo upload handler
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  // Photo upload — analyze 1 or 2 images
+  const analyzePhotos = async (files: File[]) => {
     setVisionLoading(true)
     setVisionResult(null)
     const formData = new FormData()
-    formData.append('image', file)
+    files.forEach(f => formData.append('images', f))
     try {
       const { data } = await axios.post('/api/public/analyze-kitchen', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       setVisionResult(data)
     } catch {
-      // On error, just skip to step 1
       setStep(1)
     } finally {
       setVisionLoading(false)
-      // Reset input so same file can be re-uploaded
-      if (photoInputRef.current) photoInputRef.current.value = ''
     }
+  }
+
+  const handlePhoto1 = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const thumb = URL.createObjectURL(file)
+    setUploadedPhotos([file])
+    setPhotoThumbs([thumb])
+    setVisionResult(null)
+    analyzePhotos([file])
+    if (photo1Ref.current) photo1Ref.current.value = ''
+  }
+
+  const handlePhoto2 = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const thumb = URL.createObjectURL(file)
+    const newPhotos = [uploadedPhotos[0], file]
+    const newThumbs = [photoThumbs[0], thumb]
+    setUploadedPhotos(newPhotos)
+    setPhotoThumbs(newThumbs)
+    setVisionResult(null)
+    analyzePhotos(newPhotos)
+    if (photo2Ref.current) photo2Ref.current.value = ''
+  }
+
+  const removePhoto2 = () => {
+    if (photoThumbs[1]) URL.revokeObjectURL(photoThumbs[1])
+    const remaining = [uploadedPhotos[0]]
+    const remainingThumbs = [photoThumbs[0]]
+    setUploadedPhotos(remaining)
+    setPhotoThumbs(remainingThumbs)
+    setVisionResult(null)
+    analyzePhotos(remaining)
+  }
+
+  const resetPhotos = () => {
+    photoThumbs.forEach(t => URL.revokeObjectURL(t))
+    setUploadedPhotos([])
+    setPhotoThumbs([])
+    setVisionResult(null)
   }
 
   const applyVisionResult = (result: VisionResult, advance: boolean) => {
@@ -386,71 +425,118 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
           <h2 className="text-xl font-bold text-stone-900 mb-1">Snap a photo of your kitchen</h2>
           <p className="text-stone-400 text-sm mb-5">We'll auto-detect your layout and wall lengths — saves a step.</p>
 
-          <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
-            visionLoading ? 'border-wood-300 bg-wood-50' : 'border-stone-300 hover:border-stone-400 bg-stone-50'
-          }`}>
-            {!visionLoading && !visionResult && (
-              <>
-                <div className="w-14 h-14 bg-stone-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-7 h-7 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-                  </svg>
-                </div>
-                <p className="text-stone-600 font-medium mb-2">Upload a kitchen photo</p>
-                <p className="text-stone-400 text-xs mb-4">Claude AI will detect your layout and estimate wall sizes</p>
-                <label className="cursor-pointer inline-block">
-                  <span className="bg-wood-600 hover:bg-wood-700 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors inline-block">
-                    Choose Photo
-                  </span>
-                  <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload}/>
-                </label>
-                <p className="text-xs text-stone-400 mt-3">JPG, PNG, HEIC up to 10 MB</p>
-              </>
-            )}
-
-            {visionLoading && (
-              <div className="py-4 flex flex-col items-center gap-3">
-                <Spinner/>
-                <p className="text-stone-500 text-sm">Analyzing your kitchen…</p>
+          {/* State 0: no photos yet */}
+          {uploadedPhotos.length === 0 && (
+            <div className="border-2 border-dashed border-stone-300 hover:border-stone-400 bg-stone-50 rounded-2xl p-8 text-center transition-all">
+              <div className="w-14 h-14 bg-stone-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-7 h-7 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
               </div>
-            )}
+              <p className="text-stone-600 font-medium mb-2">Upload a kitchen photo</p>
+              <p className="text-stone-400 text-xs mb-4">Claude AI will detect your layout and estimate wall sizes</p>
+              <label className="cursor-pointer inline-block">
+                <span className="bg-wood-600 hover:bg-wood-700 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors inline-block">
+                  Choose Photo
+                </span>
+                <input ref={photo1Ref} type="file" accept="image/*" className="hidden" onChange={handlePhoto1}/>
+              </label>
+              <p className="text-xs text-stone-400 mt-3">JPG, PNG, HEIC up to 10 MB</p>
+            </div>
+          )}
 
-            {visionResult && !visionLoading && (
-              <div>
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
-                  </svg>
-                </div>
-                <p className="text-sm font-bold text-stone-800 mb-1">We detected:</p>
-                <p className="text-stone-700 text-sm mb-0.5">
-                  {LAYOUTS.find(l => l.value === visionResult.layout)?.label ?? visionResult.layout} layout
-                  {visionResult.walls.a > 0 ? ` · Wall A ~${visionResult.walls.a} ft` : ''}
-                  {visionResult.walls.b > 0 ? ` · Wall B ~${visionResult.walls.b} ft` : ''}
-                  {visionResult.walls.c > 0 ? ` · Wall C ~${visionResult.walls.c} ft` : ''}
-                  {visionResult.replacing ? ' · Has existing cabinets' : ''}
-                </p>
-                {visionResult.notes && (
-                  <p className="text-xs text-stone-400 italic mb-4">"{visionResult.notes}"</p>
+          {/* State 1 & 2: photos uploaded */}
+          {uploadedPhotos.length > 0 && (
+            <div className="border-2 border-stone-200 rounded-2xl overflow-hidden">
+              {/* Thumbnails row */}
+              <div className="flex gap-3 p-4 bg-stone-50 border-b border-stone-200">
+                {photoThumbs.map((thumb, i) => (
+                  <div key={i} className="relative w-24 h-20 rounded-xl overflow-hidden border border-stone-300 flex-shrink-0">
+                    <img src={thumb} alt={`Photo ${i + 1}`} className="w-full h-full object-cover"/>
+                  </div>
+                ))}
+
+                {/* Add 2nd photo slot — only shown when 1 photo and not loading */}
+                {uploadedPhotos.length === 1 && !visionLoading && (
+                  <label className="w-24 h-20 rounded-xl border-2 border-dashed border-stone-300 hover:border-wood-500 flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors flex-shrink-0">
+                    <svg className="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <span className="text-xs text-stone-400 text-center leading-tight">2nd angle</span>
+                    <input ref={photo2Ref} type="file" accept="image/*" className="hidden" onChange={handlePhoto2}/>
+                  </label>
                 )}
-                <div className="flex gap-3 justify-center flex-wrap mt-3">
-                  <button onClick={() => applyVisionResult(visionResult, true)}
-                    className="bg-wood-600 hover:bg-wood-700 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors">
-                    Looks right →
+
+                {/* Remove 2nd photo button */}
+                {uploadedPhotos.length === 2 && !visionLoading && (
+                  <button onClick={removePhoto2}
+                    className="w-24 h-20 rounded-xl border border-stone-200 bg-white text-xs text-stone-400 hover:text-red-500 hover:border-red-300 transition-colors flex flex-col items-center justify-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Remove 2nd
                   </button>
-                  <button onClick={() => applyVisionResult(visionResult, true)}
-                    className="border border-stone-300 text-stone-700 text-sm font-medium px-5 py-2 rounded-xl hover:border-stone-400 transition-colors">
-                    Adjust manually →
-                  </button>
-                </div>
-                <button onClick={() => setVisionResult(null)}
-                  className="block mx-auto mt-3 text-xs text-stone-400 hover:text-stone-600">
-                  ← Try a different photo
-                </button>
+                )}
               </div>
-            )}
-          </div>
+
+              {/* Analysis area */}
+              <div className="p-5">
+                {visionLoading && (
+                  <div className="flex flex-col items-center gap-3 py-2">
+                    <Spinner/>
+                    <p className="text-stone-500 text-sm">
+                      {uploadedPhotos.length === 2 ? 'Analyzing from both angles…' : 'Analyzing your kitchen…'}
+                    </p>
+                  </div>
+                )}
+
+                {visionResult && !visionLoading && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                        </svg>
+                      </div>
+                      <p className="text-sm font-bold text-stone-800">
+                        {(visionResult as any).photoCount === 2 ? 'Analyzed from 2 angles' : 'We detected:'}
+                      </p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        visionResult.confidence === 'high' ? 'bg-green-100 text-green-700' :
+                        visionResult.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-stone-100 text-stone-500'
+                      }`}>{visionResult.confidence} confidence</span>
+                    </div>
+                    <p className="text-stone-700 text-sm mb-0.5">
+                      {LAYOUTS.find(l => l.value === visionResult.layout)?.label ?? visionResult.layout} layout
+                      {visionResult.walls.a > 0 ? ` · Wall A ~${visionResult.walls.a} ft` : ''}
+                      {visionResult.walls.b > 0 ? ` · Wall B ~${visionResult.walls.b} ft` : ''}
+                      {visionResult.walls.c > 0 ? ` · Wall C ~${visionResult.walls.c} ft` : ''}
+                      {visionResult.replacing ? ' · Has existing cabinets' : ''}
+                    </p>
+                    {visionResult.notes && (
+                      <p className="text-xs text-stone-400 italic mb-3">"{visionResult.notes}"</p>
+                    )}
+                    <div className="flex gap-3 flex-wrap mt-3">
+                      <button onClick={() => applyVisionResult(visionResult, true)}
+                        className="bg-wood-600 hover:bg-wood-700 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors">
+                        Looks right →
+                      </button>
+                      <button onClick={() => applyVisionResult(visionResult, true)}
+                        className="border border-stone-300 text-stone-700 text-sm font-medium px-5 py-2 rounded-xl hover:border-stone-400 transition-colors">
+                        Adjust manually →
+                      </button>
+                    </div>
+                    <button onClick={resetPhotos}
+                      className="block mt-3 text-xs text-stone-400 hover:text-stone-600">
+                      ← Start over with different photos
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="mt-5 text-center">
             <button onClick={() => setStep(1)} className="text-stone-500 hover:text-stone-700 text-sm font-medium underline underline-offset-2">
