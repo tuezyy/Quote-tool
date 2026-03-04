@@ -1,16 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
+import KitchenPlannerCanvas, { PlacedCabinet } from '../../components/public/KitchenPlannerCanvas'
 
 // ─── Pricing model ─────────────────────────────────────────────────────────────
-// Backend math — homeowner never sees linear footage or multipliers
-
-const LAYOUT_LF: Record<string, Record<string, number>> = {
-  straight: { small: 10, medium: 13, large: 16 },
-  l_shape:  { small: 19, medium: 22, large: 26 },
-  u_shape:  { small: 26, medium: 30, large: 36 },
-  island:   { small: 34, medium: 40, large: 48 },
-}
 
 const PRICE_PER_LF: Record<string, { min: number; max: number }> = {
   'Builder Grade':        { min: 350, max: 480 },
@@ -22,12 +15,33 @@ const PRICE_PER_LF: Record<string, { min: number; max: number }> = {
   'Frameless European':   { min: 750, max: 1020 },
 }
 
-function calcEstimate(layout: string, size: string, collection: string, replacing: boolean, installOnly: boolean) {
+type WallsState = { a: number; b: number; c: number; island: number }
+
+function wallsToLF(layout: string, walls: WallsState): number {
+  switch (layout) {
+    case 'straight': return walls.a
+    case 'l_shape':  return walls.a + walls.b
+    case 'u_shape':  return walls.a + walls.b + walls.c
+    case 'island':   return walls.a + walls.b + walls.c + walls.island
+    default:         return 0
+  }
+}
+
+function lfToSize(layout: string, lf: number): 'small' | 'medium' | 'large' {
+  switch (layout) {
+    case 'straight': return lf < 12 ? 'small' : lf <= 16 ? 'medium' : 'large'
+    case 'l_shape':  return lf < 19 ? 'small' : lf <= 24 ? 'medium' : 'large'
+    case 'u_shape':  return lf < 27 ? 'small' : lf <= 32 ? 'medium' : 'large'
+    case 'island':   return lf < 35 ? 'small' : lf <= 42 ? 'medium' : 'large'
+    default:         return 'medium'
+  }
+}
+
+function calcEstimate(lf: number, collection: string, replacing: boolean, installOnly: boolean) {
   if (installOnly) return { min: 2800, max: 4000, lf: 0 }
-  const lf  = LAYOUT_LF[layout]?.[size] ?? 20
   const ppl = PRICE_PER_LF[collection] ?? { min: 400, max: 500 }
-  const raw = { min: lf * ppl.min * 1.08, max: lf * ppl.max * 1.08 }   // 8% scribe/filler buffer
-  const demo = replacing ? { min: 800, max: 1500 } : { min: 0, max: 0 } // demo/haul-away
+  const raw = { min: lf * ppl.min * 1.08, max: lf * ppl.max * 1.08 }
+  const demo = replacing ? { min: 800, max: 1500 } : { min: 0, max: 0 }
   return {
     min: Math.round((raw.min + demo.min) / 100) * 100,
     max: Math.round((raw.max + demo.max) / 100) * 100,
@@ -41,11 +55,6 @@ const LAYOUTS = [
   { value: 'l_shape',  label: 'L-Shape',  sub: 'Two walls — most common' },
   { value: 'u_shape',  label: 'U-Shape',  sub: 'Three walls' },
   { value: 'island',   label: 'Island',   sub: 'U-shape + center island' },
-]
-const SIZES = [
-  { value: 'small',  label: 'Small',  sub: 'Under 150 sq ft' },
-  { value: 'medium', label: 'Medium', sub: '150–250 sq ft' },
-  { value: 'large',  label: 'Large',  sub: '250+ sq ft' },
 ]
 const COLLECTIONS = [
   { name: 'Essential Collection', desc: '3 colors — White, Gray, Espresso',      img: '/images/styles/essential-shaker-white.jpg' },
@@ -112,6 +121,14 @@ const TIMELINES = ['As soon as possible', 'Within 1 month', '1–3 months', '3�
 interface ContactForm { firstName: string; lastName: string; email: string; phone: string; address: string; city: string }
 const EMPTY: ContactForm = { firstName: '', lastName: '', email: '', phone: '', address: '', city: '' }
 
+interface VisionResult {
+  layout: string
+  walls: WallsState
+  replacing: boolean
+  confidence: 'high' | 'medium' | 'low'
+  notes: string
+}
+
 // ─── Layout icons (bird's-eye view) ────────────────────────────────────────────
 function LayoutIcon({ value }: { value: string }) {
   const r = { rx: 2, fill: 'currentColor', fillOpacity: 0.12, stroke: 'currentColor', strokeWidth: 1.5 }
@@ -126,6 +143,69 @@ function LayoutIcon({ value }: { value: string }) {
       return <svg viewBox="0 0 64 64" className="w-10 h-10"><rect x="6" y="6" width="12" height="52" {...r}/><rect x="6" y="6" width="52" height="12" {...r}/><rect x="46" y="6" width="12" height="52" {...r}/><rect x="20" y="28" width="24" height="16" {...r}/></svg>
     default: return null
   }
+}
+
+// ─── Labeled wall diagram (SVG) ────────────────────────────────────────────────
+function WallDiagram({ layout, walls }: { layout: string; walls: WallsState }) {
+  const T = 12   // wall thickness px
+  const fill = '#d4c9bc'
+  const stroke = '#a09585'
+  const lbl = '#7c6f64'
+  const ft = (n: number) => n > 0 ? `${n} ft` : '?'
+
+  if (layout === 'straight') {
+    return (
+      <svg viewBox="0 0 200 70" className="w-48 h-16">
+        <rect x="10" y="28" width="180" height={T} fill={fill} stroke={stroke} strokeWidth="1.5" rx="2"/>
+        <text x="100" y="20" textAnchor="middle" fontSize="11" fill={lbl} fontWeight="600">Wall A — {ft(walls.a)}</text>
+        <line x1="10" y1="52" x2="190" y2="52" stroke="#b0a898" strokeWidth="1" strokeDasharray="4,3"/>
+        <text x="100" y="65" textAnchor="middle" fontSize="9" fill="#b0a898">← cabinets →</text>
+      </svg>
+    )
+  }
+  if (layout === 'l_shape') {
+    return (
+      <svg viewBox="0 0 200 150" className="w-44 h-36">
+        <rect x="40" y="10" width="150" height={T} fill={fill} stroke={stroke} strokeWidth="1.5" rx="2"/>
+        <text x="115" y="7" textAnchor="middle" fontSize="10" fill={lbl} fontWeight="600">A — {ft(walls.a)}</text>
+        <rect x="40" y="10" width={T} height="130" fill={fill} stroke={stroke} strokeWidth="1.5" rx="2"/>
+        <text x="24" y="78" textAnchor="middle" fontSize="10" fill={lbl} fontWeight="600"
+          transform="rotate(-90,24,78)">B — {ft(walls.b)}</text>
+      </svg>
+    )
+  }
+  if (layout === 'u_shape') {
+    return (
+      <svg viewBox="0 0 200 160" className="w-44 h-36">
+        <rect x="40" y="10" width="150" height={T} fill={fill} stroke={stroke} strokeWidth="1.5" rx="2"/>
+        <text x="115" y="7" textAnchor="middle" fontSize="10" fill={lbl} fontWeight="600">A — {ft(walls.a)}</text>
+        <rect x="40" y="10" width={T} height="140" fill={fill} stroke={stroke} strokeWidth="1.5" rx="2"/>
+        <text x="24" y="82" textAnchor="middle" fontSize="10" fill={lbl} fontWeight="600"
+          transform="rotate(-90,24,82)">B — {ft(walls.b)}</text>
+        <rect x="178" y="10" width={T} height="140" fill={fill} stroke={stroke} strokeWidth="1.5" rx="2"/>
+        <text x="196" y="82" textAnchor="middle" fontSize="10" fill={lbl} fontWeight="600"
+          transform="rotate(90,196,82)">C — {ft(walls.c)}</text>
+      </svg>
+    )
+  }
+  if (layout === 'island') {
+    const islandPx = walls.island > 0 ? Math.min(walls.island * 8, 70) : 50
+    return (
+      <svg viewBox="0 0 200 170" className="w-44 h-40">
+        <rect x="40" y="10" width="150" height={T} fill={fill} stroke={stroke} strokeWidth="1.5" rx="2"/>
+        <text x="115" y="7" textAnchor="middle" fontSize="10" fill={lbl} fontWeight="600">A — {ft(walls.a)}</text>
+        <rect x="40" y="10" width={T} height="140" fill={fill} stroke={stroke} strokeWidth="1.5" rx="2"/>
+        <text x="24" y="82" textAnchor="middle" fontSize="10" fill={lbl} fontWeight="600"
+          transform="rotate(-90,24,82)">B — {ft(walls.b)}</text>
+        <rect x="178" y="10" width={T} height="140" fill={fill} stroke={stroke} strokeWidth="1.5" rx="2"/>
+        <text x="196" y="82" textAnchor="middle" fontSize="10" fill={lbl} fontWeight="600"
+          transform="rotate(90,196,82)">C — {ft(walls.c)}</text>
+        <rect x={115 - islandPx/2} y="90" width={islandPx} height="22" fill={fill} stroke={stroke} strokeWidth="1" rx="2"/>
+        <text x="115" y="116" textAnchor="middle" fontSize="9" fill={lbl} fontWeight="600">Island — {ft(walls.island)}</text>
+      </svg>
+    )
+  }
+  return null
 }
 
 // ─── Spinner ───────────────────────────────────────────────────────────────────
@@ -152,28 +232,97 @@ function ContactFields({ c, onChange }: { c: ContactForm; onChange: (f: ContactF
 // ═══════════════════════════════════════════════════════════════════════════════
 // BUILD & PRICE PATH
 // ═══════════════════════════════════════════════════════════════════════════════
-type BuildStep = 1 | 2 | 3 | 'style' | 'estimate' | 'contact'
+type BuildStep = 'photo' | 1 | 2 | 3 | 'style' | 'estimate' | 'planner' | 'contact'
+
+// Which wall inputs to show per layout
+const WALL_INPUTS: Record<string, Array<{ key: keyof WallsState; label: string; min: number; max: number }>> = {
+  straight: [{ key: 'a', label: 'Wall A', min: 3, max: 40 }],
+  l_shape:  [{ key: 'a', label: 'Wall A', min: 3, max: 40 }, { key: 'b', label: 'Wall B', min: 3, max: 40 }],
+  u_shape:  [{ key: 'a', label: 'Wall A', min: 3, max: 40 }, { key: 'b', label: 'Wall B', min: 3, max: 40 }, { key: 'c', label: 'Wall C', min: 3, max: 40 }],
+  island:   [{ key: 'a', label: 'Wall A', min: 3, max: 40 }, { key: 'b', label: 'Wall B', min: 3, max: 40 }, { key: 'c', label: 'Wall C', min: 3, max: 40 }, { key: 'island', label: 'Island', min: 2, max: 20 }],
+}
 
 function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
-  const [step, setStep]           = useState<BuildStep>(1)
-  const [layout, setLayout]       = useState('')
-  const [size, setSize]           = useState('')
-  const [replacing, setReplacing] = useState<boolean | null>(null)
-  const [installOnly, setInstOnly]= useState<boolean | null>(null)
+  const [step, setStep]             = useState<BuildStep>('photo')
+  const [layout, setLayout]         = useState('')
+  const [walls, setWalls]           = useState<WallsState>({ a: 0, b: 0, c: 0, island: 0 })
+  const [replacing, setReplacing]   = useState<boolean | null>(null)
+  const [installOnly, setInstOnly]  = useState<boolean | null>(null)
   const [collection, setCollection] = useState('')
-  const [style, setStyle]         = useState('')
-  const [contact, setContact]     = useState<ContactForm>(EMPTY)
-  const [timeline, setTimeline]   = useState('')
-  const [notes, setNotes]         = useState('')
+  const [style, setStyle]           = useState('')
+  const [contact, setContact]       = useState<ContactForm>(EMPTY)
+  const [timeline, setTimeline]     = useState('')
+  const [notes, setNotes]           = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError]         = useState('')
+  const [error, setError]           = useState('')
+  const [placedCabinets, setPlacedCabinets] = useState<PlacedCabinet[]>([])
 
-  const canStep1 = layout && size
-  const canStep2 = replacing !== null && installOnly !== null
-  const estimate = (layout && size && collection && replacing !== null && installOnly !== null)
-    ? calcEstimate(layout, size, collection, replacing, installOnly)
+  // Vision state
+  const [visionLoading, setVisionLoading] = useState(false)
+  const [visionResult, setVisionResult]   = useState<VisionResult | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+
+  // Smart estimate from API
+  const [apiEst, setApiEst]         = useState<{ min: number; max: number; cabinetCount: number; cabinetPrice: number; installFee: number; demoFee: number } | null>(null)
+  const [apiEstLoading, setApiEstLoading] = useState(false)
+
+  const totalLF    = wallsToLF(layout, walls)
+  const canStep1   = !!layout && totalLF > 0
+  const canStep2   = replacing !== null && installOnly !== null
+  const estimate   = (layout && totalLF > 0 && collection && replacing !== null && installOnly !== null)
+    ? calcEstimate(totalLF, collection, replacing, installOnly)
     : null
+  const displayEst = apiEst ?? estimate
   const contactValid = contact.firstName && contact.lastName && contact.email && contact.phone
+
+  // Fetch real product-based estimate when reaching the estimate step
+  useEffect(() => {
+    if (step !== 'estimate' || installOnly || !collection || collection === 'Not Sure Yet' || !layout || totalLF <= 0) return
+    setApiEstLoading(true)
+    setApiEst(null)
+    axios.get('/api/public/smart-estimate', {
+      params: {
+        layout,
+        size: lfToSize(layout, totalLF),
+        collection,
+        replacing: replacing ? 'true' : 'false',
+        walls: JSON.stringify(walls),
+      }
+    })
+      .then(r => setApiEst(r.data))
+      .catch(() => { /* silently fall back to calcEstimate */ })
+      .finally(() => setApiEstLoading(false))
+  }, [step]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Photo upload handler
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setVisionLoading(true)
+    setVisionResult(null)
+    const formData = new FormData()
+    formData.append('image', file)
+    try {
+      const { data } = await axios.post('/api/public/analyze-kitchen', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setVisionResult(data)
+    } catch {
+      // On error, just skip to step 1
+      setStep(1)
+    } finally {
+      setVisionLoading(false)
+      // Reset input so same file can be re-uploaded
+      if (photoInputRef.current) photoInputRef.current.value = ''
+    }
+  }
+
+  const applyVisionResult = (result: VisionResult, advance: boolean) => {
+    setLayout(result.layout)
+    setWalls(result.walls)
+    if (result.replacing) setReplacing(true)
+    if (advance) setStep(1)
+  }
 
   const goToEstimate = () => {
     if (installOnly) { setCollection('Not Sure Yet'); setStep('estimate') }
@@ -193,33 +342,134 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
   const submit = async () => {
     setSubmitting(true); setError('')
     try {
-      const est = estimate!
+      const est = displayEst ?? estimate!
+      const items = placedCabinets.map(c => ({
+        itemCode: c.typeCode,
+        qty: 1,
+        description: `${c.typeCode} — ${c.widthIn}" cabinet`,
+        customerPrice: 0, // priced at collection level
+      }))
       const res = await axios.post('/api/public/quote-request', {
         ...contact, timeline, notes,
-        kitchenSize: `${layout}_${size}`,
+        kitchenSize: `${layout}_${lfToSize(layout, totalLF)}`,
         collection,
         style,
         quoteType: 'estimate',
         estimateMin: est.min,
         estimateMax: est.max,
-        items: [],
+        items: items.length > 0 ? items : [],
       })
-      onSuccess({ ...contact, estimate: est, layout, size, collection, style, installOnly, quoteNumber: res.data.quoteNumber })
+      onSuccess({
+        ...contact,
+        estimate: est,
+        layout,
+        size: lfToSize(layout, totalLF),
+        collection,
+        style,
+        installOnly,
+        quoteNumber: res.data.quoteNumber,
+      })
     } catch { setError('Something went wrong. Please call (833) 201-7849.') }
     finally { setSubmitting(false) }
   }
 
+  const setWallValue = (key: keyof WallsState, val: string) => {
+    const n = parseFloat(val) || 0
+    setWalls(w => ({ ...w, [key]: n }))
+  }
+
   return (
     <>
-      {/* ── Step 1: Layout + Size ──────────────────────────────────────────────── */}
+      {/* ── Photo step ─────────────────────────────────────────────────────────── */}
+      {step === 'photo' && (
+        <div className="animate-fade-in">
+          <h2 className="text-xl font-bold text-stone-900 mb-1">Snap a photo of your kitchen</h2>
+          <p className="text-stone-400 text-sm mb-5">We'll auto-detect your layout and wall lengths — saves a step.</p>
+
+          <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
+            visionLoading ? 'border-wood-300 bg-wood-50' : 'border-stone-300 hover:border-stone-400 bg-stone-50'
+          }`}>
+            {!visionLoading && !visionResult && (
+              <>
+                <div className="w-14 h-14 bg-stone-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-7 h-7 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                </div>
+                <p className="text-stone-600 font-medium mb-2">Upload a kitchen photo</p>
+                <p className="text-stone-400 text-xs mb-4">Claude AI will detect your layout and estimate wall sizes</p>
+                <label className="cursor-pointer inline-block">
+                  <span className="bg-wood-600 hover:bg-wood-700 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors inline-block">
+                    Choose Photo
+                  </span>
+                  <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload}/>
+                </label>
+                <p className="text-xs text-stone-400 mt-3">JPG, PNG, HEIC up to 10 MB</p>
+              </>
+            )}
+
+            {visionLoading && (
+              <div className="py-4 flex flex-col items-center gap-3">
+                <Spinner/>
+                <p className="text-stone-500 text-sm">Analyzing your kitchen…</p>
+              </div>
+            )}
+
+            {visionResult && !visionLoading && (
+              <div>
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-stone-800 mb-1">We detected:</p>
+                <p className="text-stone-700 text-sm mb-0.5">
+                  {LAYOUTS.find(l => l.value === visionResult.layout)?.label ?? visionResult.layout} layout
+                  {visionResult.walls.a > 0 ? ` · Wall A ~${visionResult.walls.a} ft` : ''}
+                  {visionResult.walls.b > 0 ? ` · Wall B ~${visionResult.walls.b} ft` : ''}
+                  {visionResult.walls.c > 0 ? ` · Wall C ~${visionResult.walls.c} ft` : ''}
+                  {visionResult.replacing ? ' · Has existing cabinets' : ''}
+                </p>
+                {visionResult.notes && (
+                  <p className="text-xs text-stone-400 italic mb-4">"{visionResult.notes}"</p>
+                )}
+                <div className="flex gap-3 justify-center flex-wrap mt-3">
+                  <button onClick={() => applyVisionResult(visionResult, true)}
+                    className="bg-wood-600 hover:bg-wood-700 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors">
+                    Looks right →
+                  </button>
+                  <button onClick={() => applyVisionResult(visionResult, true)}
+                    className="border border-stone-300 text-stone-700 text-sm font-medium px-5 py-2 rounded-xl hover:border-stone-400 transition-colors">
+                    Adjust manually →
+                  </button>
+                </div>
+                <button onClick={() => setVisionResult(null)}
+                  className="block mx-auto mt-3 text-xs text-stone-400 hover:text-stone-600">
+                  ← Try a different photo
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5 text-center">
+            <button onClick={() => setStep(1)} className="text-stone-500 hover:text-stone-700 text-sm font-medium underline underline-offset-2">
+              Skip — I'll fill it in myself
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 1: Layout + Wall Dimensions ───────────────────────────────────── */}
       {step === 1 && (
         <div className="animate-fade-in">
           <h2 className="text-xl font-bold text-stone-900 mb-1">What is your kitchen layout?</h2>
-          <p className="text-stone-400 text-sm mb-5">Pick the shape that best describes your kitchen.</p>
+          <p className="text-stone-400 text-sm mb-5">Pick the shape, then enter your actual wall lengths.</p>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
             {LAYOUTS.map(l => (
-              <button key={l.value} onClick={() => setLayout(l.value)}
+              <button key={l.value}
+                onClick={() => { setLayout(l.value); setWalls({ a: 0, b: 0, c: 0, island: 0 }) }}
                 className={`border-2 rounded-2xl p-4 text-center transition-all flex flex-col items-center gap-2 ${layout===l.value?'border-wood-600 bg-wood-50':'border-stone-200 hover:border-stone-400'}`}>
                 <div className={layout===l.value?'text-wood-700':'text-stone-500'}><LayoutIcon value={l.value}/></div>
                 <div className="font-bold text-stone-900 text-sm">{l.label}</div>
@@ -228,18 +478,44 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
             ))}
           </div>
 
-          <p className="text-sm font-bold text-stone-700 mb-3">Rough kitchen size</p>
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            {SIZES.map(s => (
-              <button key={s.value} onClick={() => setSize(s.value)}
-                className={`border-2 rounded-2xl p-4 text-center transition-all ${size===s.value?'border-wood-600 bg-wood-50':'border-stone-200 hover:border-stone-400'}`}>
-                <div className="font-bold text-stone-900 text-sm">{s.label}</div>
-                <div className="text-xs text-stone-400 mt-0.5">{s.sub}</div>
-              </button>
-            ))}
-          </div>
+          {/* Wall dimension inputs — shown after layout selected */}
+          {layout && (
+            <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 mb-5">
+              <p className="text-sm font-bold text-stone-700 mb-3">Enter your wall lengths (feet)</p>
+              <div className="flex flex-col sm:flex-row gap-5 items-start">
+                {/* Labeled diagram */}
+                <div className="flex-shrink-0">
+                  <WallDiagram layout={layout} walls={walls}/>
+                </div>
+                {/* Inputs */}
+                <div className="flex-1">
+                  <div className="grid grid-cols-2 gap-3">
+                    {(WALL_INPUTS[layout] || []).map(({ key, label, min, max }) => (
+                      <div key={key}>
+                        <label className="text-xs font-semibold text-stone-500 mb-1 block">{label}</label>
+                        <input
+                          type="number" min={min} max={max} step="0.5"
+                          value={walls[key] || ''}
+                          onChange={e => setWallValue(key, e.target.value)}
+                          placeholder={`ft (e.g. ${min + 4})`}
+                          className="w-full border border-stone-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wood-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {totalLF > 0 && (
+                    <div className="mt-3 text-sm text-stone-500">
+                      Total: <span className="font-bold text-stone-800">{totalLF} linear ft</span> of cabinetry
+                      <span className="ml-2 text-xs text-stone-400">({lfToSize(layout, totalLF)} kitchen)</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
-          <div className="flex justify-end">
+          <div className="flex justify-between items-center">
+            <button onClick={() => setStep('photo')} className="text-stone-500 hover:text-stone-700 text-sm font-medium">← Photo</button>
             <button onClick={() => setStep(2)} disabled={!canStep1}
               className="bg-wood-600 hover:bg-wood-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-semibold px-8 py-2.5 rounded-xl transition-colors">
               Next →
@@ -322,7 +598,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
         </div>
       )}
 
-      {/* ── Step style: Color picker for selected collection ───────────────────── */}
+      {/* ── Step style: Color picker ───────────────────────────────────────────── */}
       {step === 'style' && (
         <div className="animate-fade-in">
           <div className="flex items-center gap-2 mb-4">
@@ -352,60 +628,146 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
       {/* ── Estimate reveal ────────────────────────────────────────────────────── */}
       {step === 'estimate' && estimate && (
         <div className="animate-fade-in">
-          <div className="text-center mb-8">
-            <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3">Based on your selections</div>
-            <div className="text-4xl sm:text-5xl font-black text-stone-900 mb-2">
-              ${estimate.min.toLocaleString()} – ${estimate.max.toLocaleString()}
-            </div>
-            <div className="text-stone-500 text-sm">
-              {installOnly
-                ? 'flat-rate installation · any kitchen layout'
-                : `installed · ~${estimate.lf} linear feet · ${replacing ? 'includes demo & haul-away' : 'new construction'}`}
-            </div>
-            {!installOnly && collection && collection !== 'Not Sure Yet' && (
-              <div className="mt-1 text-xs text-stone-400">{collection}{style ? ` · ${style}` : ''}</div>
-            )}
-          </div>
-
-          <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5 mb-6 text-sm text-stone-600">
-            <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-wood-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              <div>
-                <strong className="text-stone-800">This is an estimate range, not a final quote.</strong> Our team reviews measurements and confirms exact pricing within 2 hours. Most projects land in the middle of this range.
+          {apiEstLoading && (
+            <div className="text-center py-10">
+              <div className="inline-flex items-center gap-3 text-stone-500 text-sm">
+                <Spinner/>
+                <span>Calculating your estimate from our product catalog…</span>
               </div>
             </div>
-          </div>
+          )}
 
-          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          {!apiEstLoading && (
+            <>
+              <div className="text-center mb-6">
+                <div className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3">
+                  {apiEst ? 'Estimated from our live product catalog' : 'Based on your selections'}
+                </div>
+                <div className="text-4xl sm:text-5xl font-black text-stone-900 mb-2">
+                  ${displayEst!.min.toLocaleString()} – ${displayEst!.max.toLocaleString()}
+                </div>
+                <div className="text-stone-500 text-sm">
+                  {installOnly
+                    ? 'flat-rate installation · any kitchen layout'
+                    : `fully installed · ${replacing ? 'demo & haul-away included' : 'new construction'}`}
+                </div>
+                {!installOnly && collection && collection !== 'Not Sure Yet' && (
+                  <div className="mt-1 text-xs text-stone-400">{collection}{style ? ` · ${style}` : ''}</div>
+                )}
+                {totalLF > 0 && (
+                  <div className="mt-1 text-xs text-stone-400">{totalLF} linear ft · {lfToSize(layout, totalLF)} kitchen</div>
+                )}
+              </div>
+
+              {/* Smart estimate breakdown */}
+              {apiEst && apiEst.cabinetCount > 0 && (
+                <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5 mb-5 text-sm">
+                  <div className="font-semibold text-stone-800 mb-3 text-xs uppercase tracking-wide">What's included</div>
+                  <div className="space-y-2 text-stone-600">
+                    <div className="flex justify-between">
+                      <span>{apiEst.cabinetCount} cabinets ({collection})</span>
+                      <span className="font-semibold text-stone-800">${apiEst.cabinetPrice.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Professional installation</span>
+                      <span className="font-semibold text-stone-800">${apiEst.installFee.toLocaleString()}</span>
+                    </div>
+                    {apiEst.demoFee > 0 && (
+                      <div className="flex justify-between">
+                        <span>Demo & haul-away</span>
+                        <span className="font-semibold text-stone-800">${apiEst.demoFee.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="border-t border-stone-200 pt-2 flex justify-between text-xs text-stone-400">
+                      <span>FL sales tax on materials</span>
+                      <span>included</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 text-sm text-amber-800 flex items-start gap-3">
+                <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                  <strong>Estimate range — not a final quote.</strong> Final pricing is confirmed after a quick free measurement. Most projects land near the middle of this range.
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 mb-3">
+                <button onClick={() => setStep('planner')}
+                  className="flex-1 bg-wood-600 hover:bg-wood-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+                  </svg>
+                  Design My Layout →
+                </button>
+                <button onClick={() => setStep('contact')}
+                  className="flex-1 border-2 border-wood-500 text-wood-700 hover:bg-wood-50 font-bold py-3.5 rounded-xl text-sm transition-colors">
+                  Skip to Contact →
+                </button>
+              </div>
+              <a href="tel:+18332017849"
+                className="block text-center border-2 border-stone-300 hover:border-stone-400 text-stone-700 font-semibold py-3 rounded-xl text-sm transition-colors mb-4">
+                Call (833) 201-7849
+              </a>
+              <p className="text-center text-stone-400 text-xs">No obligation. Free measurement walkthrough to lock in final pricing.</p>
+
+              <div className="mt-5 flex justify-center gap-4 text-xs text-stone-400">
+                <button onClick={() => setStep(installOnly ? 2 : style ? 'style' : 3)} className="hover:text-stone-600 underline underline-offset-2">
+                  Change selections
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Planner step ───────────────────────────────────────────────────────── */}
+      {step === 'planner' && displayEst && (
+        <div className="animate-fade-in">
+          <div className="flex items-center gap-2 mb-4">
+            <button onClick={() => setStep('estimate')} className="text-stone-500 hover:text-stone-700 text-sm font-medium">← Back</button>
+            <span className="text-stone-300">·</span>
+            <span className="text-sm font-semibold text-wood-600">Floor Plan</span>
+          </div>
+          <h2 className="text-xl font-bold text-stone-900 mb-1">Design your cabinet layout</h2>
+          <p className="text-stone-400 text-sm mb-5">
+            Cabinets pre-filled based on your wall dimensions. Click palette items to add, drag to rearrange, × to remove.
+          </p>
+
+          <KitchenPlannerCanvas
+            layout={layout}
+            walls={walls}
+            collection={collection}
+            placedCabinets={placedCabinets}
+            onCabinetsChange={setPlacedCabinets}
+            estimate={displayEst}
+            replacing={replacing ?? false}
+          />
+
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <button onClick={() => setStep('contact')}
-              className="flex-1 bg-wood-600 hover:bg-wood-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-              Get My Exact Quote →
+              className="flex-1 bg-wood-600 hover:bg-wood-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors">
+              Looks good — Enter My Details →
             </button>
-            <a href="tel:+18332017849"
-              className="flex-1 border-2 border-stone-300 hover:border-stone-400 text-stone-700 font-semibold py-3.5 rounded-xl text-sm text-center transition-colors">
-              Call (833) 201-7849
-            </a>
-          </div>
-          <p className="text-center text-stone-400 text-xs">No obligation. We will confirm exact pricing after a quick measurement walkthrough.</p>
-
-          <div className="mt-6 flex justify-center gap-4 text-xs text-stone-400">
-            <button onClick={() => setStep(installOnly ? 2 : style ? 'style' : 3)} className="hover:text-stone-600 underline underline-offset-2">
-              Change selections
+            <button onClick={() => setStep('contact')}
+              className="flex-1 border border-stone-300 text-stone-600 hover:border-stone-400 font-medium py-3.5 rounded-xl text-sm transition-colors">
+              Skip layout — go to contact
             </button>
           </div>
         </div>
       )}
 
       {/* ── Contact form ───────────────────────────────────────────────────────── */}
-      {step === 'contact' && estimate && (
+      {step === 'contact' && displayEst && (
         <div className="animate-fade-in">
           {/* Sticky estimate reminder */}
           <div className="bg-wood-50 border border-wood-200 rounded-2xl px-5 py-3 mb-6 flex items-center justify-between">
             <div>
               <div className="text-xs font-bold text-wood-700 uppercase tracking-wider">Your Estimate</div>
-              <div className="text-xl font-bold text-wood-800">${estimate.min.toLocaleString()} – ${estimate.max.toLocaleString()}</div>
+              <div className="text-xl font-bold text-wood-800">${displayEst.min.toLocaleString()} – ${displayEst.max.toLocaleString()}</div>
             </div>
             <button onClick={() => setStep('estimate')} className="text-xs text-wood-600 hover:text-wood-800 font-medium border border-wood-200 rounded-lg px-3 py-1.5">
               Edit ↑
@@ -440,7 +802,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
 
           <div className="flex justify-between items-center">
             <button onClick={() => setStep('estimate')} className="text-stone-500 hover:text-stone-700 font-medium text-sm">← Back</button>
-            <button onClick={submit} disabled={!contactValid || !timeline || submitting}
+            <button onClick={submit} disabled={!contactValid || !timeline || submitting || (!displayEst && !estimate)}
               className="bg-wood-600 hover:bg-wood-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-bold px-8 py-3 rounded-xl transition-colors flex items-center gap-2">
               {submitting ? <><Spinner/>Submitting...</> : 'Submit My Quote Request'}
             </button>
@@ -616,7 +978,7 @@ export default function GetQuote() {
             <h3 className="font-bold text-stone-900 mb-4 text-sm uppercase tracking-wide">What Happens Next</h3>
             <div className="space-y-4">
               {[
-                { icon: '📞', title: 'Emma calls you shortly', desc: 'Our AI assistant will call to schedule your free measurement — usually within 5 minutes.' },
+                { icon: '📞', title: 'Emma calls you shortly', desc: 'Our assistant will call to schedule your free measurement — usually within 5 minutes.' },
                 { icon: '📐', title: 'Free in-home measurement', desc: 'A team member visits, takes exact measurements, and walks through your project.' },
                 { icon: '💰', title: 'Exact quote confirmed', desc: 'We lock in the final number — no surprises. Most projects land near the middle of your estimate.' },
                 { icon: '🔨', title: 'Installation in 2–3 days', desc: 'Our licensed crew handles everything: demo, delivery, and full installation.' },
@@ -691,9 +1053,9 @@ export default function GetQuote() {
                   <LayoutIcon value="l_shape"/>
                 </div>
                 <h3 className="font-bold text-stone-900 text-lg mb-1">Build & Price</h3>
-                <p className="text-stone-600 text-sm leading-relaxed mb-4">Answer 3 visual questions about your kitchen. See an instant estimate range before you enter any contact info.</p>
+                <p className="text-stone-600 text-sm leading-relaxed mb-4">Photo + wall dimensions → instant estimate → visual floor plan. The most accurate quote with zero commitment.</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {['Visual questions', 'Instant range', 'No SKU knowledge needed'].map(t => (
+                  {['Photo AI auto-fill', 'Real wall dimensions', 'Visual floor plan'].map(t => (
                     <span key={t} className="bg-wood-100 text-wood-700 text-xs px-2 py-1 rounded-full border border-wood-200">{t}</span>
                   ))}
                 </div>

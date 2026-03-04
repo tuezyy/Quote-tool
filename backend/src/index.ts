@@ -17,6 +17,7 @@ import quotesRoutes from './routes/quotes';
 import settingsRoutes from './routes/settings';
 import usersRoutes from './routes/users';
 import publicRoutes from './routes/public';
+import kitchenVisionRoutes from './routes/kitchen-vision';
 import chatRoutes from './routes/chat';
 import smsRoutes from './routes/sms';
 import vapiCabinetRoutes from './routes/vapi-cabinet';
@@ -39,6 +40,7 @@ app.get('/api/health', (req, res) => {
 
 // API Routes
 app.use('/api/public', publicRoutes);
+app.use('/api/public', kitchenVisionRoutes);
 app.use('/api/public', schedulingRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/sms', smsRoutes);
