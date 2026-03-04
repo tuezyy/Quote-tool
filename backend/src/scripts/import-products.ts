@@ -37,15 +37,16 @@ async function importProducts() {
     for (const collectionData of data.collections) {
       console.log(`\n📁 Processing collection: ${collectionData.name}`);
 
-      // Create or find collection
-      const collection = await prisma.collection.upsert({
-        where: { name: collectionData.name },
-        update: {},
-        create: {
-          name: collectionData.name,
-          description: `Collection with ${collectionData.product_count} products`
-        }
-      });
+      // Create or find collection (no businessId — standalone import script)
+      let collection = await prisma.collection.findFirst({ where: { name: collectionData.name } });
+      if (!collection) {
+        collection = await prisma.collection.create({
+          data: {
+            name: collectionData.name,
+            description: `Collection with ${collectionData.product_count} products`
+          }
+        });
+      }
 
       console.log(`  ✅ Collection created/found: ${collection.name}`);
 

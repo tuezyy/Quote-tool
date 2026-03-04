@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../utils/prisma';
-import { authenticate, requireAdmin } from '../middleware/auth';
+import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
 // Get all collections
-router.get('/', async (req, res) => {
+router.get('/', authenticate, async (req: AuthRequest, res) => {
   try {
     const collections = await prisma.collection.findMany({
+      where: { businessId: req.businessId },
       include: {
         styles: true,
         _count: {
@@ -26,7 +27,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get single collection
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticate, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
@@ -70,7 +71,7 @@ router.post(
       const { name, description } = req.body;
 
       const collection = await prisma.collection.create({
-        data: { name, description }
+        data: { name, description, businessId: (req as AuthRequest).businessId || undefined }
       });
 
       res.status(201).json(collection);

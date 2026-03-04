@@ -1,16 +1,16 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../utils/prisma';
-import { authenticate, requireAdmin } from '../middleware/auth';
+import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
 // Get all customers with search
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, async (req: AuthRequest, res) => {
   try {
     const { search, page = '1', limit = '50' } = req.query;
 
-    const where: any = {};
+    const where: any = { businessId: req.businessId };
 
     if (search) {
       where.OR = [
@@ -90,7 +90,7 @@ router.post(
     body('state').optional({ checkFalsy: true }).trim(),
     body('zipCode').optional({ checkFalsy: true }).trim()
   ],
-  async (req, res) => {
+  async (req: AuthRequest, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -108,7 +108,8 @@ router.post(
           address: address || null,
           city: city || null,
           state: state || null,
-          zipCode: zipCode || null
+          zipCode: zipCode || null,
+          businessId: req.businessId || undefined,
         }
       });
 

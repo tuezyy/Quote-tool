@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
+import { useBusiness } from '../../context/BusinessContext'
 
 interface Message { role: 'user' | 'assistant'; content: string }
 
@@ -10,20 +11,27 @@ const QUICK_REPLIES = [
   'How long does it take?',
 ]
 
-const WELCOME: Message = {
-  role: 'assistant',
-  content: "Hi! I'm the Cabinets of Orlando assistant. I can answer questions about pricing, collections, or installation. What can I help you with?",
-}
-
 export default function ChatWidget() {
+  const business = useBusiness()
   const [open, setOpen]         = useState(false)
-  const [messages, setMessages] = useState<Message[]>([WELCOME])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [loading, setLoading]   = useState(false)
   const [leadSaved, setLeadSaved] = useState(false)
   const [showQuickReplies, setShowQuickReplies] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
+
+  // Build welcome message from live business config
+  const welcome: Message = {
+    role: 'assistant',
+    content: `Hi! I'm the ${business.name} assistant. I can answer questions about pricing, collections, or installation. What can I help you with?`,
+  }
+
+  // Init messages with welcome when business loads
+  useEffect(() => {
+    setMessages([welcome])
+  }, [business.name])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -44,14 +52,14 @@ export default function ChatWidget() {
 
     try {
       const { data } = await axios.post('/api/chat', {
-        messages: next.filter(m => m.content !== WELCOME.content || m.role !== 'assistant'),
+        messages: next.filter(m => m.content !== welcome.content || m.role !== 'assistant'),
       })
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
       if (data.leadSaved) setLeadSaved(true)
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "Sorry, I'm having trouble right now. Please call us at (833) 201-7849 — we're available 24/7.",
+        content: `Sorry, I'm having trouble right now. Please call us at ${business.phone || '(833) 201-7849'} — we're available 24/7.`,
       }])
     } finally {
       setLoading(false)
@@ -61,6 +69,10 @@ export default function ChatWidget() {
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
   }
+
+  const phoneHref = business.phone
+    ? `tel:+${business.phone.replace(/\D/g, '').replace(/^(\d{10})$/, '1$1')}`
+    : 'tel:+18332017849'
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
@@ -74,10 +86,12 @@ export default function ChatWidget() {
           <div className="bg-stone-950 px-4 py-3 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-wood-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xs font-bold">CO</span>
+                <span className="text-white text-xs font-bold">
+                  {business.name.split(' ').map(w => w[0]).slice(0, 2).join('')}
+                </span>
               </div>
               <div>
-                <div className="text-white font-semibold text-sm">Cabinets of Orlando</div>
+                <div className="text-white font-semibold text-sm">{business.name}</div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 bg-green-400 rounded-full"/>
                   <span className="text-stone-400 text-xs">Available now</span>
@@ -165,8 +179,8 @@ export default function ChatWidget() {
 
           {/* Footer */}
           <div className="bg-white border-t border-stone-100 px-4 py-2 text-center flex-shrink-0">
-            <a href="tel:+18332017849" className="text-xs text-stone-400 hover:text-wood-600 transition-colors">
-              Or call (833) 201-7849 · Available 24/7
+            <a href={phoneHref} className="text-xs text-stone-400 hover:text-wood-600 transition-colors">
+              Or call {business.phone || '(833) 201-7849'} · Available 24/7
             </a>
           </div>
         </div>

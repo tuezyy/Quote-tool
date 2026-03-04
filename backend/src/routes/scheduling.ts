@@ -51,7 +51,7 @@ router.get('/slots', async (req: Request, res: Response) => {
 
 // ─── POST /api/public/schedule ────────────────────────────────────────────
 // Books a measurement appointment from the web scheduling page
-router.post('/schedule', async (req: Request, res: Response) => {
+router.post('/schedule', async (req: any, res: Response) => {
   try {
     const { firstName, lastName, email, phone, quoteNumber, date, time, notes } = req.body;
 
@@ -70,7 +70,7 @@ router.post('/schedule', async (req: Request, res: Response) => {
     let customerId: string | null = null;
 
     if (quoteNumber) {
-      const quote = await prisma.quote.findUnique({
+      const quote = await prisma.quote.findFirst({
         where: { quoteNumber },
         include: { customer: true },
       });
@@ -91,19 +91,17 @@ router.post('/schedule', async (req: Request, res: Response) => {
 
     // If no quote found, find or create customer
     if (!customerId && email) {
-      const customer = await prisma.customer.upsert({
-        where: { email },
-        update: { phone: phone || undefined },
-        create: {
-          firstName,
-          lastName: lastName || '',
-          email,
-          phone,
-          city: 'Orlando',
-          state: 'FL',
-          zipCode: '',
-        },
-      });
+      const businessId = req.businessId as string | undefined;
+      const customer = businessId
+        ? await prisma.customer.upsert({
+            where: { businessId_email: { businessId, email } },
+            update: { phone: phone || undefined },
+            create: { firstName, lastName: lastName || '', email, phone, city: 'Orlando', state: 'FL', zipCode: '', businessId },
+          })
+        : await prisma.customer.findFirst({ where: { email } }) ||
+          await prisma.customer.create({
+            data: { firstName, lastName: lastName || '', email, phone, city: 'Orlando', state: 'FL', zipCode: '' },
+          });
       customerId = customer.id;
     }
 

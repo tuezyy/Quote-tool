@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from '../services/api';
 
 interface Setting {
@@ -29,6 +29,19 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Catalog import state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    success: boolean;
+    collectionsCreated?: number;
+    productsUpserted?: number;
+    collectionsProcessed?: number;
+    rowsRead?: number;
+    errors?: string[];
+    error?: string;
+  } | null>(null);
 
   // Installer state
   const [installers, setInstallers] = useState<Installer[]>([]);
@@ -137,6 +150,26 @@ export default function Settings() {
       setError(err.response?.data?.error || 'Failed to save settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCatalogImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    const formData = new FormData();
+    formData.append('catalog', file);
+    try {
+      const res = await axios.post('/admin/catalog/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setImportResult(res.data);
+    } catch (err: any) {
+      setImportResult({ success: false, error: err.response?.data?.error || 'Import failed' });
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -353,6 +386,79 @@ export default function Settings() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Catalog Import */}
+      <div className="card mt-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold">Import Catalog</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Upload a CSV to create or update collections and products for this business.
+            </p>
+          </div>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="btn-primary text-sm px-4 py-2 flex-shrink-0"
+          >
+            {importing ? 'Importing…' : 'Choose CSV'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={handleCatalogImport}
+          />
+        </div>
+
+        {/* Result banner */}
+        {importResult && (
+          <div className={`rounded border px-4 py-3 text-sm ${
+            importResult.success
+              ? 'bg-green-50 border-green-200 text-green-800'
+              : 'bg-red-50 border-red-200 text-red-700'
+          }`}>
+            {importResult.success ? (
+              <div>
+                <p className="font-semibold mb-1">Import complete</p>
+                <p>
+                  {importResult.collectionsProcessed} collection{importResult.collectionsProcessed !== 1 ? 's' : ''} processed
+                  ({importResult.collectionsCreated} new) ·{' '}
+                  {importResult.productsUpserted} product{importResult.productsUpserted !== 1 ? 's' : ''} upserted
+                  from {importResult.rowsRead} rows
+                </p>
+                {importResult.errors && importResult.errors.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer font-medium text-amber-700">
+                      {importResult.errors.length} warning{importResult.errors.length !== 1 ? 's' : ''}
+                    </summary>
+                    <ul className="mt-1 list-disc list-inside text-xs text-amber-800 space-y-0.5">
+                      {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            ) : (
+              <p>{importResult.error}</p>
+            )}
+          </div>
+        )}
+
+        {/* CSV format reference */}
+        <div className="mt-4 bg-gray-50 border border-gray-200 rounded p-4">
+          <p className="text-xs font-semibold text-gray-700 mb-2">Expected CSV format (header row required):</p>
+          <pre className="text-xs text-gray-600 overflow-x-auto leading-relaxed">
+{`collectionName,itemCode,description,category,msrp,price,width,height,depth,doors
+Essential & Charm,W3012,Wall Cabinet 30"W x 12"H,WALL CABINETS - 12"H,245.00,98.00,30,12,12,2
+Essential & Charm,B09,Base Cabinet 9"W x 34.5"H,BASE CABINETS,198.00,79.20,9,34,24,1`}
+          </pre>
+          <p className="text-xs text-gray-500 mt-2">
+            Required: <code className="bg-gray-200 px-1 rounded">collectionName itemCode description category msrp price</code>
+            {' '}· Optional: <code className="bg-gray-200 px-1 rounded">width height depth doors</code>
+          </p>
+        </div>
       </div>
 
       {/* Preview Section */}

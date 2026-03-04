@@ -2,14 +2,15 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { body, validationResult } from 'express-validator';
 import prisma from '../utils/prisma';
-import { authenticate, requireAdmin } from '../middleware/auth';
+import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// Get all users (admin only)
-router.get('/', authenticate, requireAdmin, async (req, res) => {
+// Get all users (admin only) — scoped to this business
+router.get('/', authenticate, requireAdmin, async (req: AuthRequest, res) => {
   try {
     const users = await prisma.user.findMany({
+      where: { businessId: req.businessId },
       select: {
         id: true,
         email: true,
@@ -79,6 +80,7 @@ router.post(
       }
 
       const { email, password, fullname, role, phone } = req.body;
+      const businessId = (req as AuthRequest).businessId;
 
       // Check if user exists
       const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -89,7 +91,7 @@ router.post(
       // Hash password
       const passwordHash = await bcrypt.hash(password, 10);
 
-      // Create user
+      // Create user scoped to this business
       const user = await prisma.user.create({
         data: {
           email,
@@ -97,6 +99,7 @@ router.post(
           fullname,
           role,
           phone: phone || null,
+          businessId: businessId || undefined,
         },
         select: {
           id: true,

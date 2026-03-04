@@ -94,22 +94,45 @@ const BOM: Record<string, BomTemplate> = {
 };
 
 // ─────────────────────────────────────────────
+// GET /api/public/config
+// Tenant business config for frontend — drives BusinessContext
+// ─────────────────────────────────────────────
+router.get('/config', (req: any, res: any) => {
+  const b = req.business;
+  res.json({
+    name:            b.name,
+    phone:           b.phone,
+    email:           b.email,
+    website:         b.website,
+    city:            b.city,
+    state:           b.state,
+    address:         b.address,
+    logoUrl:         b.logoUrl,
+    primaryColor:    b.primaryColor,
+    facebookUrl:     b.facebookUrl,
+    googleReviewUrl: b.googleReviewUrl,
+  });
+});
+
+// ─────────────────────────────────────────────
 // GET /api/public/business
 // Machine-readable business info for AI agents
 // ─────────────────────────────────────────────
-router.get('/business', (req, res) => {
+router.get('/business', (req: any, res: any) => {
+  const b = req.business;
+  const phone = b.phone?.replace(/\D/g, '') || '18332017849';
   res.json({
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
-    name: 'Cabinets of Orlando',
-    url: 'https://cabinetsoforlando.com',
-    telephone: '+18332017849',
-    email: 'info@cabinetsoforlando.com',
+    name: b.name,
+    url: b.website,
+    telephone: `+${phone}`,
+    email: b.email,
     address: {
       '@type': 'PostalAddress',
-      addressLocality: 'Orlando',
-      addressRegion: 'FL',
-      postalCode: '32801',
+      addressLocality: b.city || 'Orlando',
+      addressRegion: b.state || 'FL',
+      postalCode: b.zip || '32801',
       addressCountry: 'US',
     },
     openingHoursSpecification: [{
@@ -148,7 +171,7 @@ router.get('/business', (req, res) => {
 // ─────────────────────────────────────────────
 const MARKUP_FACTOR = 1.2; // Customer pays 120% of MSRP
 
-router.get('/products', async (req, res) => {
+router.get('/products', async (req: any, res: any) => {
   try {
     const {
       collectionId,
@@ -158,7 +181,8 @@ router.get('/products', async (req, res) => {
       limit = '48',
     } = req.query;
 
-    const where: any = {};
+    // Scope products to this business via collection
+    const where: any = { collection: { businessId: req.businessId } };
     if (collectionId) where.collectionId = collectionId as string;
     if (category) where.category = category as string;
     if (search) {
@@ -224,10 +248,10 @@ router.get('/products', async (req, res) => {
 // GET /api/public/categories
 // Distinct categories for a collection
 // ─────────────────────────────────────────────
-router.get('/categories', async (req, res) => {
+router.get('/categories', async (req: any, res: any) => {
   try {
     const { collectionId } = req.query;
-    const where: any = {};
+    const where: any = { collection: { businessId: req.businessId } };
     if (collectionId) where.collectionId = collectionId as string;
 
     const cats = await prisma.product.findMany({
@@ -247,9 +271,10 @@ router.get('/categories', async (req, res) => {
 // GET /api/public/collections
 // All collections with metadata — AI readable
 // ─────────────────────────────────────────────
-router.get('/collections', async (req, res) => {
+router.get('/collections', async (req: any, res: any) => {
   try {
     const collections = await prisma.collection.findMany({
+      where: { businessId: req.businessId },
       include: {
         styles: {
           select: { id: true, name: true, code: true },
@@ -273,7 +298,7 @@ router.get('/collections', async (req, res) => {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
       name: 'Cabinet Collections',
-      provider: 'Cabinets of Orlando',
+      provider: req.business?.name || 'Cabinet Company',
       totalCollections: formatted.length,
       totalSkus: formatted.reduce((sum, c) => sum + c.totalProducts, 0),
       collections: formatted,
@@ -388,9 +413,12 @@ router.post(
         isQualified,      // boolean
       } = req.body;
 
-      // Upsert customer
+      const businessId: string = req.businessId;
+      const business = req.business;
+
+      // Upsert customer (scoped to this business)
       let customer = await prisma.customer.findFirst({
-        where: { email },
+        where: { businessId, email },
       });
 
       if (!customer) {
@@ -401,9 +429,10 @@ router.post(
             email,
             phone,
             address: address || '',
-            city: city || 'Orlando',
-            state: 'FL',
+            city: city || business?.city || 'Orlando',
+            state: business?.state || 'FL',
             zipCode: '',
+            businessId,
           },
         });
       }
@@ -422,22 +451,23 @@ router.post(
         items?.length ? `\nSELECTED ITEMS (${items.length} products):\n${itemLines}\nItems Subtotal: $${itemsTotal.toFixed(2)}` : '',
         notes ? `\nAdditional Notes: ${notes}` : '',
         `Submitted: ${new Date().toISOString()}`,
-        `Source: cabinetsoforlando.com/get-a-quote`,
+        business?.website ? `Source: ${business.website}/get-a-quote` : '',
       ].filter(Boolean).join('\n');
 
-      // Get first available admin user to assign quote to
+      // Get first available admin user for this business
       const adminUser = await prisma.user.findFirst({
-        where: { role: 'ADMIN' },
+        where: { businessId, role: 'ADMIN' },
       });
 
-      // Find matching collection (or fallback to first)
+      // Find matching collection for this business (or fallback to first)
       let webCollection = await prisma.collection.findFirst({
-        where: { name: { contains: collection, mode: 'insensitive' } },
+        where: { businessId, name: { contains: collection, mode: 'insensitive' } },
         include: { styles: { take: 1 } },
       });
 
       if (!webCollection) {
         webCollection = await prisma.collection.findFirst({
+          where: { businessId },
           include: { styles: { take: 1 } },
         });
       }
@@ -446,20 +476,21 @@ router.post(
       let quoteNumber = '';
       let quote: { id: string } | null = null;
 
-      // Pick installer from DB (first available with a phone), fall back to env var
+      // Pick installer from DB for this business (first available with a phone), fall back to business config or env var
       const installerUser = await prisma.user.findFirst({
-        where: { role: 'INSTALLER', isAvailable: true, phone: { not: null } },
+        where: { businessId, role: 'INSTALLER', isAvailable: true, phone: { not: null } },
         orderBy: { createdAt: 'asc' },
       });
-      const installerPhone = installerUser?.phone || process.env.INSTALLER_PHONE || '';
+      const installerPhone = installerUser?.phone || business?.installerPhone || process.env.INSTALLER_PHONE || '';
 
       if (webCollection && adminUser && webCollection.styles.length > 0) {
-        const quoteCount = await prisma.quote.count();
+        const quoteCount = await prisma.quote.count({ where: { businessId } });
         quoteNumber = `Q-${new Date().getFullYear()}-WEB-${String(quoteCount + 1).padStart(4, '0')}`;
 
         quote = await prisma.quote.create({
           data: {
             quoteNumber,
+            businessId,
             customerId: customer.id,
             userId: adminUser.id,
             collectionId: webCollection.id,
@@ -524,7 +555,8 @@ router.post(
       });
     } catch (err) {
       console.error('Quote request error:', err);
-      res.status(500).json({ error: 'Failed to submit quote request. Please call (833) 201-7849.' });
+      const phone = (req as any).business?.phone || '(833) 201-7849';
+      res.status(500).json({ error: `Failed to submit quote request. Please call ${phone}.` });
     }
   }
 );
@@ -572,6 +604,7 @@ function lfToSize(layout: string, lf: number): string {
 // Optional: walls (JSON string e.g. '{"a":12,"b":9}') — more accurate when provided
 // ─────────────────────────────────────────────
 router.get('/smart-estimate', async (req: any, res: any) => {
+  const businessId = req.businessId;
   try {
     const { layout, size, collection, replacing, walls: wallsParam, cabinetCountOverride } = req.query;
 
@@ -610,23 +643,32 @@ router.get('/smart-estimate', async (req: any, res: any) => {
       return res.status(400).json({ error: `Unknown layout/size: ${bomKey}` });
     }
 
-    // Find collection in DB (or use any collection as a price reference)
+    // Find collection in DB scoped to this business (or use any collection as a price reference)
     let collectionId: string | null = null;
     if (collection && collection !== 'Not Sure Yet') {
       const dbCol = await prisma.collection.findFirst({
-        where: { name: { contains: collection as string, mode: 'insensitive' } },
+        where: { businessId, name: { contains: collection as string, mode: 'insensitive' } },
         select: { id: true },
       });
       collectionId = dbCol?.id ?? null;
     }
 
-    // Fallback to Essential Collection if not found
+    // Fallback to Essential Collection for this business
     if (!collectionId) {
       const fallback = await prisma.collection.findFirst({
-        where: { name: { contains: 'Essential', mode: 'insensitive' } },
+        where: { businessId, name: { contains: 'Essential', mode: 'insensitive' } },
         select: { id: true },
       });
       collectionId = fallback?.id ?? null;
+    }
+
+    // Final fallback: any collection for this business
+    if (!collectionId) {
+      const any = await prisma.collection.findFirst({
+        where: { businessId },
+        select: { id: true },
+      });
+      collectionId = any?.id ?? null;
     }
 
     if (!collectionId) {

@@ -5,13 +5,20 @@ import prisma from '../utils/prisma';
 const router = Router();
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const SYSTEM_PROMPT = `You are a friendly AI assistant for Cabinets of Orlando — a cabinet installation company serving Central Florida. You help homeowners understand their options, answer questions, and get free quotes.
+function buildSystemPrompt(business: any): string {
+  const name    = business?.name    || 'the cabinet company';
+  const phone   = business?.phone   || '(833) 201-7849';
+  const email   = business?.email   || 'info@cabinetquoting.com';
+  const city    = business?.city    || 'Orlando';
+  const state   = business?.state   || 'FL';
+
+  return `You are a friendly AI assistant for ${name} — a cabinet installation company serving ${city}, ${state}. You help homeowners understand their options, answer questions, and get free quotes.
 
 BUSINESS INFO:
-- Name: Cabinets of Orlando
-- Phone: (833) 201-7849
-- Email: info@cabinetsoforlando.com
-- Location: Orlando, FL 32801
+- Name: ${name}
+- Phone: ${phone}
+- Email: ${email}
+- Location: ${city}, ${state}
 - Available: 24/7 for calls, installations Mon–Sat
 - Licensed & fully insured in Florida, 16+ years in business
 
@@ -32,13 +39,13 @@ COLLECTIONS (5 total, 1,044+ SKUs):
 - Slim Shaker — modern minimal
 - Frameless High Gloss — European style, premium
 
-SERVICE AREAS: Orlando, Winter Park, Apopka, Ocoee, Clermont, Kissimmee, Pine Hills, Altamonte Springs, MetroWest, Winter Garden, Lake Nona
+SERVICE AREAS: ${city} and surrounding areas
 
 HOW TO RESPOND:
 - Be warm, conversational, and concise — 2–3 sentences max unless they ask something detailed
 - Give real pricing numbers confidently — we provide upfront transparent pricing
 - When someone is ready to move forward, offer to capture their info so the team calls within 2 hours
-- If you don't know something specific, say "I'm not 100% sure on that — our team can answer at (833) 201-7849"
+- If you don't know something specific, say "I'm not 100% sure on that — our team can answer at ${phone}"
 - Never be pushy
 
 LEAD CAPTURE:
@@ -46,6 +53,7 @@ When a user wants a quote or to be contacted, ask for their first name, last nam
 {"capturedLead":true,"firstName":"...","lastName":"...","email":"...","phone":"..."}
 
 Only include the JSON when you have confirmed all four values.`;
+}
 
 router.post('/', async (req: any, res: any) => {
   try {
@@ -54,10 +62,13 @@ router.post('/', async (req: any, res: any) => {
       return res.status(400).json({ error: 'messages array required' });
     }
 
+    const business = req.business;
+    const businessId: string = req.businessId;
+
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 400,
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(business),
       messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
     });
 
@@ -72,8 +83,8 @@ router.post('/', async (req: any, res: any) => {
         const lead = JSON.parse(jsonMatch[0]);
         reply = raw.replace(jsonMatch[0], '').trim();
 
-        // Save lead to DB
-        let customer = await prisma.customer.findFirst({ where: { email: lead.email } });
+        // Save lead to DB scoped to this business
+        let customer = await prisma.customer.findFirst({ where: { businessId, email: lead.email } });
         if (!customer) {
           customer = await prisma.customer.create({
             data: {
@@ -82,21 +93,26 @@ router.post('/', async (req: any, res: any) => {
               email: lead.email,
               phone: lead.phone,
               address: '',
-              city: 'Orlando',
-              state: 'FL',
+              city: business?.city || 'Orlando',
+              state: business?.state || 'FL',
               zipCode: '',
+              businessId: businessId || undefined,
             },
           });
         }
 
-        const adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
-        const collection = await prisma.collection.findFirst({ include: { styles: { take: 1 } } });
+        const adminUser = await prisma.user.findFirst({ where: { businessId, role: 'ADMIN' } });
+        const collection = await prisma.collection.findFirst({
+          where: { businessId },
+          include: { styles: { take: 1 } }
+        });
 
         if (adminUser && collection && collection.styles.length > 0) {
-          const count = await prisma.quote.count();
+          const count = await prisma.quote.count({ where: { businessId } });
           await prisma.quote.create({
             data: {
               quoteNumber: `Q-${new Date().getFullYear()}-CHAT-${String(count + 1).padStart(4, '0')}`,
+              businessId: businessId || undefined,
               customerId: customer.id,
               userId: adminUser.id,
               collectionId: collection.id,
@@ -120,7 +136,8 @@ router.post('/', async (req: any, res: any) => {
     res.json({ reply, leadSaved });
   } catch (err) {
     console.error('Chat error:', err);
-    res.status(500).json({ error: 'Chat unavailable. Please call (833) 201-7849.' });
+    const phone = (req as any).business?.phone || '(833) 201-7849';
+    res.status(500).json({ error: `Chat unavailable. Please call ${phone}.` });
   }
 });
 

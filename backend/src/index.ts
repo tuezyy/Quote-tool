@@ -4,6 +4,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import prisma from './utils/prisma';
 import { sendSchedulingLink, sendFollowUpSms } from './services/sms';
+import { detectTenant } from './middleware/tenant';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ import chatRoutes from './routes/chat';
 import smsRoutes from './routes/sms';
 import vapiCabinetRoutes from './routes/vapi-cabinet';
 import schedulingRoutes from './routes/scheduling';
+import catalogRoutes from './routes/catalog';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -38,11 +40,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', environment: process.env.NODE_ENV });
 });
 
-// API Routes
-app.use('/api/public', publicRoutes);
-app.use('/api/public', kitchenVisionRoutes);
-app.use('/api/public', schedulingRoutes);
-app.use('/api/chat', chatRoutes);
+// API Routes — public routes use detectTenant middleware
+app.use('/api/public', detectTenant, publicRoutes);
+app.use('/api/public', detectTenant, kitchenVisionRoutes);
+app.use('/api/public', detectTenant, schedulingRoutes);
+app.use('/api/chat', detectTenant, chatRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/vapi-cabinet', vapiCabinetRoutes);
 app.use('/api/auth', authRoutes);
@@ -53,6 +55,7 @@ app.use('/api/customers', customersRoutes);
 app.use('/api/quotes', quotesRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/admin/catalog', catalogRoutes);
 
 // Serve static frontend files in production
 if (process.env.NODE_ENV === 'production') {

@@ -27,12 +27,28 @@ const COLLECTION_MAP: Record<string, string[]> = {
 async function main() {
   console.log('🌱 Starting database seed...');
 
+  // ── Business ────────────────────────────────────────────────────────────────
+  const business = await prisma.business.upsert({
+    where:  { slug: 'cabinets-of-orlando' },
+    update: {},
+    create: {
+      slug: 'cabinets-of-orlando',
+      name: 'Cabinets of Orlando',
+      phone: '(833) 201-7849',
+      email: 'info@cabinetsoforlando.com',
+      website: 'https://cabinetsoforlando.com',
+      city: 'Orlando',
+      state: 'FL',
+    }
+  });
+  console.log(`✅ Business: ${business.name}`);
+
   // ── Users ──────────────────────────────────────────────────────────────────
   const adminHash = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({
     where:  { email: 'admin@cabinetquoting.com' },
     update: {},
-    create: { email: 'admin@cabinetquoting.com', passwordHash: adminHash, fullname: 'Admin User', role: 'ADMIN' }
+    create: { email: 'admin@cabinetquoting.com', passwordHash: adminHash, fullname: 'Admin User', role: 'ADMIN', businessId: business.id }
   });
   console.log(`✅ Admin user: ${admin.email}`);
 
@@ -40,9 +56,17 @@ async function main() {
   const installer = await prisma.user.upsert({
     where:  { email: 'installer@cabinetquoting.com' },
     update: {},
-    create: { email: 'installer@cabinetquoting.com', passwordHash: installerHash, fullname: 'John Installer', role: 'INSTALLER' }
+    create: { email: 'installer@cabinetquoting.com', passwordHash: installerHash, fullname: 'John Installer', role: 'INSTALLER', businessId: business.id }
   });
   console.log(`✅ Installer user: ${installer.email}`);
+
+  // Backfill businessId on any rows that don't have it yet
+  await prisma.$executeRaw`UPDATE users SET business_id = ${business.id} WHERE business_id IS NULL`;
+  await prisma.$executeRaw`UPDATE customers SET business_id = ${business.id} WHERE business_id IS NULL`;
+  await prisma.$executeRaw`UPDATE quotes SET business_id = ${business.id} WHERE business_id IS NULL`;
+  await prisma.$executeRaw`UPDATE collections SET business_id = ${business.id} WHERE business_id IS NULL`;
+  await prisma.$executeRaw`UPDATE settings SET business_id = ${business.id} WHERE business_id IS NULL`;
+  console.log('✅ businessId backfilled on existing rows');
 
   // ── Settings ───────────────────────────────────────────────────────────────
   for (const s of [
@@ -52,7 +76,11 @@ async function main() {
     { key: 'company_phone',   value: '(833) 201-7849' },
     { key: 'company_address', value: 'Orlando, FL 32801' },
   ]) {
-    await prisma.setting.upsert({ where: { key: s.key }, update: {}, create: s });
+    await prisma.setting.upsert({
+      where:  { businessId_key: { businessId: business.id, key: s.key } },
+      update: {},
+      create: { ...s, businessId: business.id }
+    });
   }
   console.log('✅ Settings created');
 
@@ -69,9 +97,9 @@ async function main() {
 
   for (const col of collectionDefs) {
     await prisma.collection.upsert({
-      where:  { name: col.name },
+      where:  { businessId_name: { businessId: business.id, name: col.name } },
       update: { description: col.description, imageUrl: col.imageUrl },
-      create: col
+      create: { ...col, businessId: business.id }
     });
   }
   console.log('✅ Collections created');
@@ -173,9 +201,9 @@ async function main() {
 
   // ── Sample customer ────────────────────────────────────────────────────────
   await prisma.customer.upsert({
-    where:  { email: 'johndoe@example.com' },
+    where:  { businessId_email: { businessId: business.id, email: 'johndoe@example.com' } },
     update: {},
-    create: { firstName: 'John', lastName: 'Doe', email: 'johndoe@example.com', phone: '(555) 987-6543', address: '123 Main Street', city: 'Orlando', state: 'FL', zipCode: '32801' }
+    create: { firstName: 'John', lastName: 'Doe', email: 'johndoe@example.com', phone: '(555) 987-6543', address: '123 Main Street', city: 'Orlando', state: 'FL', zipCode: '32801', businessId: business.id }
   });
   console.log('✅ Sample customer created');
 

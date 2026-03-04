@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useBusiness } from '../../context/BusinessContext'
 
 const RETAILERS = [
   { name: 'IKEA', desc: 'SEKTION, AXSTAD, BODBYN and all IKEA kitchen systems' },
@@ -53,21 +54,22 @@ const FAQS = [
 ]
 
 export default function InstallOnly() {
-  return (
-    <div>
-      {/* JSON-LD Schema */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'Service',
-        name: 'Cabinet Installation Only — Orlando',
-        description: 'Professional cabinet installation service for homeowners who have already purchased cabinets from IKEA, Home Depot, Lowe\'s, or any custom supplier. Serving Orlando and surrounding areas.',
-        provider: {
-          '@type': 'LocalBusiness',
-          name: 'Cabinets of Orlando',
-          telephone: '+18332017849',
-          email: 'info@cabinetsoforlando.com',
-          url: 'https://cabinetsoforlando.com',
-        },
+  const business = useBusiness()
+  const phoneDigits = (business.phone || '18332017849').replace(/\D/g, '')
+  const phoneHref = `tel:+${phoneDigits}`
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: `Cabinet Installation Only — ${business.city || 'Orlando'}`,
+    description: `Professional cabinet installation service for homeowners who have already purchased cabinets from IKEA, Home Depot, Lowe's, or any custom supplier. Serving ${business.city || 'Orlando'} and surrounding areas.`,
+    provider: {
+      '@type': 'LocalBusiness',
+      name: business.name,
+      telephone: `+${phoneDigits}`,
+      email: business.email,
+      url: business.website,
+    },
         areaServed: ['Orlando, FL', 'Winter Park, FL', 'Apopka, FL', 'Ocoee, FL', 'Clermont, FL', 'Kissimmee, FL'],
         offers: {
           '@type': 'Offer',
@@ -86,7 +88,12 @@ export default function InstallOnly() {
             acceptedAnswer: { '@type': 'Answer', text: f.a },
           })),
         },
-      })}} />
+      };
+
+  return (
+    <div>
+      {/* JSON-LD Schema */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* Hero — targeted at IKEA/HD buyers */}
       <section className="bg-stone-950 py-20">
@@ -116,9 +123,9 @@ export default function InstallOnly() {
                 className="bg-wood-600 hover:bg-wood-700 text-white font-bold px-8 py-4 rounded-xl text-base transition-all hover:scale-105 shadow-lg shadow-wood-900/30">
                 Get Install Quote →
               </Link>
-              <a href="tel:+18332017849"
+              <a href={phoneHref}
                 className="border border-stone-600 hover:border-stone-400 text-stone-300 hover:text-white font-semibold px-8 py-4 rounded-xl text-base transition-all">
-                (833) 201-7849
+                {business.phone || '(833) 201-7849'}
               </a>
             </div>
           </div>
@@ -285,9 +292,9 @@ export default function InstallOnly() {
               className="bg-wood-600 hover:bg-wood-700 text-white font-bold px-8 py-4 rounded-xl transition-all hover:scale-105">
               Get Install Quote →
             </Link>
-            <a href="tel:+18332017849"
+            <a href={phoneHref}
               className="border border-stone-700 hover:border-white text-stone-300 hover:text-white font-semibold px-8 py-4 rounded-xl transition-all">
-              (833) 201-7849
+              {business.phone || '(833) 201-7849'}
             </a>
           </div>
         </div>

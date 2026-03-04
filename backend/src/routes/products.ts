@@ -3,14 +3,17 @@ import { body, validationResult } from 'express-validator';
 import prisma from '../utils/prisma';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
 
+// All private product queries scope through collection → businessId
+
 const router = Router();
 
 // Get all products with filters
-router.get('/', async (req, res) => {
+router.get('/', authenticate, async (req: AuthRequest, res) => {
   try {
     const { collectionId, category, search, page = '1', limit = '50' } = req.query;
 
-    const where: any = {};
+    // Scope through collection → businessId
+    const where: any = { collection: { businessId: req.businessId } };
 
     if (collectionId) {
       where.collectionId = collectionId;
@@ -63,7 +66,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get single product
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticate, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
@@ -152,7 +155,7 @@ router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
 });
 
 // Get product categories for a collection
-router.get('/categories/:collectionId', async (req, res) => {
+router.get('/categories/:collectionId', authenticate, async (req: AuthRequest, res) => {
   try {
     const { collectionId } = req.params;
 

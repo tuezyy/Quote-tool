@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
+import { useBusiness } from '../../context/BusinessContext'
 // KitchenPlannerCanvas removed — floor plan feature paused for rebuild
 
 // ─── Pricing model ─────────────────────────────────────────────────────────────
@@ -263,6 +264,7 @@ const WALL_INPUTS: Record<string, Array<{ key: keyof WallsState; label: string; 
 }
 
 function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
+  const business = useBusiness()
   const [step, setStep]             = useState<BuildStep>('intro')
   const [layout, setLayout]         = useState('')
   const [walls, setWalls]           = useState<WallsState>({ a: 0, b: 0, c: 0, island: 0 })
@@ -443,7 +445,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
         isHardDisqualified,
         quoteNumber: res.data.quoteNumber,
       })
-    } catch { setError('Something went wrong. Please call (833) 201-7849.') }
+    } catch { setError(`Something went wrong. Please call ${business.phone || '(833) 201-7849'}.`) }
     finally { setSubmitting(false) }
   }
 
@@ -888,10 +890,12 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
                   Get My Quote →
                 </button>
               </div>
-              <a href="tel:+18332017849"
-                className="block text-center border-2 border-stone-300 hover:border-stone-400 text-stone-700 font-semibold py-3 rounded-xl text-sm transition-colors mb-4">
-                Call (833) 201-7849
-              </a>
+              {business.phone && (
+                <a href={`tel:+${business.phone.replace(/\D/g,'')}`}
+                  className="block text-center border-2 border-stone-300 hover:border-stone-400 text-stone-700 font-semibold py-3 rounded-xl text-sm transition-colors mb-4">
+                  Call {business.phone}
+                </a>
+              )}
               <p className="text-center text-stone-400 text-xs">No obligation. Free measurement walkthrough to lock in final pricing.</p>
 
               <div className="mt-5 flex justify-center gap-4 text-xs text-stone-400">
@@ -1060,6 +1064,7 @@ const KITCHEN_SIZES = [
   { label: 'Not Sure Yet',     value: 'unknown',       priceRange: "We will figure it out together" },
 ]
 function EstimatePath({ onSuccess }: { onSuccess: (d: any) => void }) {
+  const business = useBusiness()
   const [step, setStep]           = useState<1|2>(1)
   const [kitchenSize, setKSize]   = useState('')
   const [collection, setCollection] = useState('')
@@ -1075,7 +1080,7 @@ function EstimatePath({ onSuccess }: { onSuccess: (d: any) => void }) {
     try {
       await axios.post('/api/public/quote-request', { ...contact, kitchenSize, collection, timeline, notes, quoteType: 'estimate' })
       onSuccess({ ...contact, kitchenSize, collection })
-    } catch { setError('Something went wrong. Please call (833) 201-7849.') }
+    } catch { setError(`Something went wrong. Please call ${business.phone || '(833) 201-7849'}.`) }
     finally { setSubmitting(false) }
   }
 
@@ -1165,6 +1170,7 @@ function EstimatePath({ onSuccess }: { onSuccess: (d: any) => void }) {
 type Mode = null | 'estimate' | 'detailed'
 
 export default function GetQuote() {
+  const business = useBusiness()
   const [mode, setMode]           = useState<Mode>(null)
   const [submitted, setSubmitted] = useState(false)
   const [submitData, setSubmitData] = useState<any>(null)
@@ -1215,7 +1221,7 @@ export default function GetQuote() {
               <p className="text-stone-600 text-sm leading-relaxed">
                 We'll review your project details and reach out to discuss options. If you're working with a homeowner, feel free to have them submit a request directly — we'll get them a measurement appointment right away.
               </p>
-              <p className="text-stone-500 text-sm mt-3">Questions? Call us at <a href="tel:+18332017849" className="font-semibold text-wood-700">(833) 201-7849</a></p>
+              {business.phone && <p className="text-stone-500 text-sm mt-3">Questions? Call us at <a href={`tel:+${business.phone.replace(/\D/g,'')}`} className="font-semibold text-wood-700">{business.phone}</a></p>}
             </div>
           ) : (
             <div className="bg-white border border-stone-200 rounded-2xl p-5 mb-6">
@@ -1257,8 +1263,8 @@ export default function GetQuote() {
             <Link to="/" className="flex-1 border border-stone-300 text-stone-700 font-semibold px-6 py-3 rounded-xl text-sm text-center">
               Back to Home
             </Link>
-            <a href="tel:+18332017849" className="flex-1 bg-wood-600 hover:bg-wood-700 text-white font-semibold px-6 py-3 rounded-xl text-sm text-center transition-colors">
-              Call (833) 201-7849
+            <a href={`tel:+${(business.phone || '18332017849').replace(/\D/g,'')}`} className="flex-1 bg-wood-600 hover:bg-wood-700 text-white font-semibold px-6 py-3 rounded-xl text-sm text-center transition-colors">
+              Call {business.phone || '(833) 201-7849'}
             </a>
           </div>
         </div>
@@ -1332,7 +1338,7 @@ export default function GetQuote() {
               </button>
             </div>
             <p className="text-center text-stone-400 text-sm mt-6">
-              Prefer to talk? <a href="tel:+18332017849" className="text-wood-600 font-semibold">(833) 201-7849</a> — available 24/7.
+              Prefer to talk? <a href={`tel:+${(business.phone || '18332017849').replace(/\D/g,'')}`} className="text-wood-600 font-semibold">{business.phone || '(833) 201-7849'}</a> — available 24/7.
             </p>
           </div>
         )}

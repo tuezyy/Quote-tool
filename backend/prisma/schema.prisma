@@ -8,18 +8,51 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  fullname     String?  @map("full_name")
-  role         UserRole @default(INSTALLER)
-  phone        String?
-  isAvailable  Boolean  @default(true) @map("is_available")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+model Business {
+  id              String   @id @default(uuid())
+  slug            String   @unique
+  name            String
+  domain          String?  @unique
+  phone           String?
+  email           String?
+  website         String?
+  address         String?
+  city            String?
+  state           String?
+  zip             String?
+  logoUrl         String?  @map("logo_url")
+  primaryColor    String?  @map("primary_color")
+  facebookUrl     String?  @map("facebook_url")
+  googleReviewUrl String?  @map("google_review_url")
+  vapiAgentId     String?  @map("vapi_agent_id")
+  vapiPhoneId     String?  @map("vapi_phone_id")
+  clicksendFrom   String?  @map("clicksend_from")
+  installerPhone  String?  @map("installer_phone")
+  createdAt       DateTime @default(now()) @map("created_at")
 
-  quotes Quote[]
+  users       User[]
+  customers   Customer[]
+  quotes      Quote[]
+  collections Collection[]
+  settings    Setting[]
+
+  @@map("businesses")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  businessId   String?   @map("business_id")
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  fullname     String?   @map("full_name")
+  role         UserRole  @default(INSTALLER)
+  phone        String?
+  isAvailable  Boolean   @default(true) @map("is_available")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  business Business? @relation(fields: [businessId], references: [id])
+  quotes   Quote[]
 
   @@map("users")
 }
@@ -30,16 +63,19 @@ enum UserRole {
 }
 
 model Collection {
-  id          String    @id @default(uuid())
-  name        String    @unique
+  id          String   @id @default(uuid())
+  businessId  String?  @map("business_id")
+  name        String
   description String?
-  imageUrl    String?   @map("image_url")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  imageUrl    String?  @map("image_url")
+  createdAt   DateTime @default(now()) @map("created_at")
 
+  business Business?  @relation(fields: [businessId], references: [id])
   styles   Style[]
   products Product[]
   quotes   Quote[]
 
+  @@unique([businessId, name])
   @@map("collections")
 }
 
@@ -85,27 +121,31 @@ model Product {
 }
 
 model Customer {
-  id        String   @id @default(uuid())
-  firstName String   @map("first_name")
-  lastName  String   @map("last_name")
-  email     String   @unique
-  phone     String
-  address   String?
-  city      String?
-  state     String?
-  zipCode   String?  @map("zip_code")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(uuid())
+  businessId String?  @map("business_id")
+  firstName  String   @map("first_name")
+  lastName   String   @map("last_name")
+  email      String
+  phone      String
+  address    String?
+  city       String?
+  state      String?
+  zipCode    String?  @map("zip_code")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
+  business     Business?               @relation(fields: [businessId], references: [id])
   quotes       Quote[]
   appointments MeasurementAppointment[]
 
+  @@unique([businessId, email])
   @@map("customers")
 }
 
 model Quote {
   id              String      @id @default(uuid())
-  quoteNumber     String      @unique @map("quote_number")
+  businessId      String?     @map("business_id")
+  quoteNumber     String      @map("quote_number")
   customerId      String      @map("customer_id")
   userId          String      @map("user_id")
   collectionId    String      @map("collection_id")
@@ -147,6 +187,7 @@ model Quote {
   callAttemptedAt DateTime? @map("call_attempted_at")
   callOutcome     String?   @map("call_outcome") // no_answer | scheduled | declined | voicemail
 
+  business      Business?              @relation(fields: [businessId], references: [id])
   customer      Customer               @relation(fields: [customerId], references: [id], onDelete: Cascade)
   user          User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
   collection    Collection             @relation(fields: [collectionId], references: [id], onDelete: Restrict)
@@ -154,6 +195,7 @@ model Quote {
   items         QuoteItem[]
   appointments  MeasurementAppointment[]
 
+  @@unique([businessId, quoteNumber])
   @@index([customerId])
   @@index([userId])
   @@index([status])
@@ -206,10 +248,14 @@ model MeasurementAppointment {
 }
 
 model Setting {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  value     String   @db.Text
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(uuid())
+  businessId String?  @map("business_id")
+  key        String
+  value      String   @db.Text
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
+  business Business? @relation(fields: [businessId], references: [id])
+
+  @@unique([businessId, key])
   @@map("settings")
 }

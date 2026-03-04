@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import prisma from '../utils/prisma';
-import { authenticate, requireAdmin } from '../middleware/auth';
+import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// Get all settings
-router.get('/', authenticate, async (req, res) => {
+// Get all settings for this business
+router.get('/', authenticate, async (req: AuthRequest, res) => {
   try {
-    const settings = await prisma.setting.findMany();
+    const settings = await prisma.setting.findMany({
+      where: { businessId: req.businessId },
+    });
 
     const settingsObj: Record<string, string> = {};
     settings.forEach(setting => {
@@ -22,15 +24,16 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // Update setting (admin only)
-router.put('/:key', authenticate, requireAdmin, async (req, res) => {
+router.put('/:key', authenticate, requireAdmin, async (req: AuthRequest, res) => {
   try {
     const { key } = req.params;
     const { value } = req.body;
+    const businessId = req.businessId;
 
     const setting = await prisma.setting.upsert({
-      where: { key },
+      where: { businessId_key: { businessId: businessId || '', key } },
       update: { value },
-      create: { key, value }
+      create: { key, value, businessId: businessId || undefined }
     });
 
     res.json(setting);

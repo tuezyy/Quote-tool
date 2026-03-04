@@ -36,14 +36,13 @@ const recalculateQuoteTotals = async (quoteId: string) => {
   });
 };
 
-// Generate quote number
-const generateQuoteNumber = async (): Promise<string> => {
+// Generate quote number scoped to a business
+const generateQuoteNumber = async (businessId: string): Promise<string> => {
   const year = new Date().getFullYear();
   const count = await prisma.quote.count({
     where: {
-      quoteNumber: {
-        startsWith: `Q-${year}-`
-      }
+      businessId: businessId || undefined,
+      quoteNumber: { startsWith: `Q-${year}-` }
     }
   });
   const nextNumber = (count + 1).toString().padStart(4, '0');
@@ -51,11 +50,11 @@ const generateQuoteNumber = async (): Promise<string> => {
 };
 
 // Get all quotes with filters
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, async (req: AuthRequest, res) => {
   try {
     const { status, customerId, userId, startDate, endDate, search, page = '1', limit = '50' } = req.query;
 
-    const where: any = {};
+    const where: any = { businessId: req.businessId };
 
     if (status) {
       where.status = status;
@@ -85,7 +84,7 @@ router.get('/', authenticate, async (req, res) => {
 
     const [quotes, total] = await Promise.all([
       prisma.quote.findMany({
-        where,
+        where: where,
         include: {
           customer: true,
           user: { select: { id: true, fullname: true, email: true } },
@@ -171,6 +170,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    const businessId = req.businessId;
+
     // Calculate wholesale subtotal (our cost)
     let subtotal = 0;
     for (const item of items) {
@@ -191,8 +192,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
     const taxAmount = clientSubtotal * parseFloat(taxRate);
     const total = clientSubtotal + taxAmount;
 
-    // Generate quote number
-    const quoteNumber = await generateQuoteNumber();
+    // Generate quote number scoped to this business
+    const quoteNumber = await generateQuoteNumber(businessId || '');
 
     // Set expiration date (30 days from now)
     const expiresAt = new Date();
@@ -202,6 +203,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
     const quote = await prisma.quote.create({
       data: {
         quoteNumber,
+        businessId: businessId || undefined,
         customerId,
         userId: req.user.userId,
         collectionId,
@@ -381,12 +383,13 @@ router.post('/:id/duplicate', authenticate, async (req: AuthRequest, res) => {
     }
 
     // Generate new quote number
-    const quoteNumber = await generateQuoteNumber();
+    const quoteNumber = await generateQuoteNumber(req.businessId || '');
 
     // Create duplicate
     const duplicate = await prisma.quote.create({
       data: {
         quoteNumber,
+        businessId: req.businessId || undefined,
         customerId: original.customerId,
         userId: req.user.userId,
         collectionId: original.collectionId,
@@ -550,8 +553,9 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Quote not found' });
     }
 
-    // Get company info from settings
-    const settings = await prisma.setting.findMany();
+    // Get company info from settings for this business
+    const businessId = (req as AuthRequest).businessId;
+    const settings = await prisma.setting.findMany({ where: { businessId: businessId || undefined } });
     const companyInfo = {
       name: settings.find(s => s.key === 'company_name')?.value || 'Cabinet Quoting Company',
       email: settings.find(s => s.key === 'company_email')?.value || 'info@cabinetquoting.com',

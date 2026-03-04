@@ -3,6 +3,7 @@ import { verifyToken, JwtPayload } from '../utils/jwt';
 
 export interface AuthRequest extends Request {
   user?: JwtPayload;
+  businessId?: string;
 }
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -16,6 +17,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     const token = authHeader.substring(7);
     const decoded = verifyToken(token);
     req.user = decoded;
+    req.businessId = decoded.businessId;
     next();
   } catch (error) {
     return res.status(401).json({ error: 'Invalid or expired token' });

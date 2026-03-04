@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useBusiness } from '../../context/BusinessContext'
 
 const SERVICE_AREAS = [
   'Orlando', 'Winter Park', 'Apopka', 'Ocoee',
@@ -6,35 +7,44 @@ const SERVICE_AREAS = [
   'MetroWest', 'Winter Garden', 'Lake Nona',
 ]
 
+function toTelHref(phone: string | null): string {
+  if (!phone) return 'tel:+18332017849';
+  const digits = phone.replace(/\D/g, '');
+  return `tel:+${digits.startsWith('1') ? digits : '1' + digits}`;
+}
+
 export default function Contact() {
+  const business = useBusiness()
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    name: `Contact ${business.name}`,
+    mainEntity: {
+      '@type': 'LocalBusiness',
+      name: business.name,
+      telephone: business.phone,
+      email: business.email,
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: business.city || 'Orlando',
+        addressRegion: business.state || 'FL',
+        addressCountry: 'US',
+      },
+      openingHoursSpecification: [{
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
+        opens: '00:00',
+        closes: '23:59',
+      }],
+      areaServed: SERVICE_AREAS.map(a => ({ '@type': 'City', name: `${a}, FL` })),
+    },
+  };
+
   return (
     <div>
       {/* JSON-LD Contact Schema */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'ContactPage',
-        name: 'Contact Cabinets of Orlando',
-        mainEntity: {
-          '@type': 'LocalBusiness',
-          name: 'Cabinets of Orlando',
-          telephone: '+18332017849',
-          email: 'info@cabinetsoforlando.com',
-          address: {
-            '@type': 'PostalAddress',
-            addressLocality: 'Orlando',
-            addressRegion: 'FL',
-            postalCode: '32801',
-            addressCountry: 'US',
-          },
-          openingHoursSpecification: [{
-            '@type': 'OpeningHoursSpecification',
-            dayOfWeek: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
-            opens: '00:00',
-            closes: '23:59',
-          }],
-          areaServed: SERVICE_AREAS.map(a => ({ '@type': 'City', name: a.includes('FL') ? a : `${a}, FL` })),
-        },
-      })}} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* Header */}
       <section className="bg-stone-950 py-16">
@@ -45,7 +55,7 @@ export default function Contact() {
             <span className="text-stone-300">Contact</span>
           </nav>
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
-            Contact <span className="text-wood-400">Cabinets of Orlando</span>
+            Contact <span className="text-wood-400">{business.name}</span>
           </h1>
           <p className="text-stone-400 text-lg">
             Ready to start your kitchen transformation? We're here to help.
@@ -61,37 +71,41 @@ export default function Contact() {
             <div>
               <h2 className="text-2xl font-bold text-stone-900 mb-8">Get in Touch</h2>
               <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-stone-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-wood-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                    </svg>
+                {business.phone && (
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-stone-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-wood-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-1">Phone</div>
+                      <a href={toTelHref(business.phone)} className="text-xl font-bold text-stone-900 hover:text-wood-600 transition-colors">
+                        {business.phone}
+                      </a>
+                      <div className="text-stone-500 text-sm mt-0.5">Call or text anytime during business hours</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-1">Phone</div>
-                    <a href="tel:+18332017849" className="text-xl font-bold text-stone-900 hover:text-wood-600 transition-colors">
-                      (833) 201-7849
-                    </a>
-                    <div className="text-stone-500 text-sm mt-0.5">Call or text anytime during business hours</div>
-                  </div>
-                </div>
+                )}
 
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-stone-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-wood-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                    </svg>
+                {business.email && (
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-stone-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-wood-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-1">Email</div>
+                      <a href={`mailto:${business.email}`}
+                        className="text-lg font-semibold text-stone-900 hover:text-wood-600 transition-colors">
+                        {business.email}
+                      </a>
+                      <div className="text-stone-500 text-sm mt-0.5">We respond within 2 business hours</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-1">Email</div>
-                    <a href="mailto:info@cabinetsoforlando.com"
-                      className="text-lg font-semibold text-stone-900 hover:text-wood-600 transition-colors">
-                      info@cabinetsoforlando.com
-                    </a>
-                    <div className="text-stone-500 text-sm mt-0.5">We respond within 2 business hours</div>
-                  </div>
-                </div>
+                )}
 
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-stone-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -106,25 +120,29 @@ export default function Contact() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-stone-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-wood-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                    </svg>
+                {(business.city || business.state) && (
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-stone-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-wood-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-1">Location</div>
+                      <div className="text-stone-900 font-semibold">
+                        {[business.city, business.state].filter(Boolean).join(', ')}
+                      </div>
+                      <div className="text-stone-500 text-sm mt-0.5">Serving all of Central Florida</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-1">Location</div>
-                    <div className="text-stone-900 font-semibold">Orlando, FL 32801</div>
-                    <div className="text-stone-500 text-sm mt-0.5">Serving all of Central Florida</div>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* License/Trust */}
               <div className="mt-10 bg-stone-50 border border-stone-200 rounded-2xl p-6">
                 <h3 className="font-bold text-stone-900 mb-3">Licensed & Fully Insured</h3>
                 <p className="text-stone-500 text-sm leading-relaxed">
-                  Cabinets of Orlando is a fully licensed contractor in the state of Florida carrying
+                  {business.name} is a fully licensed contractor in the state of Florida carrying
                   general liability insurance. All installations are performed by our trained, experienced crew.
                 </p>
                 <div className="grid grid-cols-2 gap-3 mt-4">
@@ -157,12 +175,14 @@ export default function Contact() {
                   className="block bg-wood-600 hover:bg-wood-700 text-white font-bold py-3 rounded-xl transition-colors text-sm">
                   Start Your Free Quote →
                 </Link>
-                <div className="mt-4">
-                  <a href="tel:+18332017849"
-                    className="block border border-stone-700 hover:border-stone-500 text-stone-300 font-medium py-3 rounded-xl transition-colors text-sm">
-                    Or Call (833) 201-7849
-                  </a>
-                </div>
+                {business.phone && (
+                  <div className="mt-4">
+                    <a href={toTelHref(business.phone)}
+                      className="block border border-stone-700 hover:border-stone-500 text-stone-300 font-medium py-3 rounded-xl transition-colors text-sm">
+                      Or Call {business.phone}
+                    </a>
+                  </div>
+                )}
               </div>
 
               {/* Service Areas */}
@@ -182,25 +202,27 @@ export default function Contact() {
               </div>
 
               {/* Social */}
-              <div className="border border-stone-200 rounded-2xl p-6">
-                <h3 className="font-bold text-stone-900 mb-4">Follow Us</h3>
-                <a
-                  href="https://www.facebook.com/cabinetsoforlando"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 text-stone-700 hover:text-blue-600 transition-colors"
-                >
-                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-sm">Facebook</div>
-                    <div className="text-xs text-stone-400">@cabinetsoforlando</div>
-                  </div>
-                </a>
-              </div>
+              {business.facebookUrl && (
+                <div className="border border-stone-200 rounded-2xl p-6">
+                  <h3 className="font-bold text-stone-900 mb-4">Follow Us</h3>
+                  <a
+                    href={business.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 text-stone-700 hover:text-blue-600 transition-colors"
+                  >
+                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-sm">Facebook</div>
+                      <div className="text-xs text-stone-400">{business.name}</div>
+                    </div>
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>
