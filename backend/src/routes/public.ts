@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../utils/prisma';
-import { sendCustomerConfirmation, sendInstallerNotification } from '../services/sms';
+import { sendCustomerOpener, sendInstallerNotification } from '../services/sms';
 
 const router = Router();
 
@@ -365,6 +365,11 @@ router.post(
         quoteType, // 'estimate' | 'detailed'
         estimateMin, estimateMax, // frontend-calculated estimate range
         style, // selected door style
+        // Lead qualification
+        ownsHome,         // boolean | undefined
+        replacingAll,     // boolean | undefined (true=yes, undefined=not sure)
+        customerTimeline, // '0-3' | '3-6' | 'exploring' | undefined
+        isQualified,      // boolean
       } = req.body;
 
       // Upsert customer
@@ -455,16 +460,23 @@ router.post(
             msrpTotal: 0,
             expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             installerPhone: installerPhone || null,
+            // Lead qualification
+            ownsHome:         ownsHome ?? null,
+            replacingAll:     replacingAll ?? null,
+            customerTimeline: customerTimeline || null,
+            isQualified:      isQualified === true,
           },
         });
       }
 
-      // Trigger Vapi outbound call to customer (non-blocking)
-      if (quoteNumber && quote) {
+      // Trigger Vapi outbound call (Emma) — skip for renters (hard disqualified)
+      if (quoteNumber && quote && ownsHome !== false) {
         const { triggerOutboundCall } = await import('../services/vapi');
         triggerOutboundCall(phone, `${firstName} ${lastName}`, quoteNumber, quote.id)
           .then(() => console.log(`[Vapi] Outbound call triggered for ${quoteNumber}`))
           .catch(err => console.error('[Vapi] Call trigger failed:', err.message));
+      } else if (ownsHome === false) {
+        console.log(`[Vapi] Skipped Emma call for ${quoteNumber} — renter`);
       }
 
       // Fire SMS notifications (non-blocking — don't let SMS failure break the response)
@@ -472,8 +484,8 @@ router.post(
         const customerName = `${firstName} ${lastName}`;
 
         Promise.all([
-          sendCustomerConfirmation(firstName, phone, quoteNumber, estimateMin, estimateMax).catch(
-            (e) => console.error('[SMS] Customer confirmation failed:', e.message)
+          sendCustomerOpener(firstName, phone, quoteNumber).catch(
+            (e) => console.error('[SMS] Customer opener failed:', e.message)
           ),
           installerPhone
             ? sendInstallerNotification(

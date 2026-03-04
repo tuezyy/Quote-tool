@@ -58,20 +58,29 @@ export async function sendSms(to: string, body: string): Promise<void> {
 // Message templates
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function sendCustomerConfirmation(
+// First SMS after quote submission — conversational opener, not a confirmation blast
+export async function sendCustomerOpener(
   firstName: string,
   phone: string,
   quoteNumber: string,
-  estimateMin?: number,
-  estimateMax?: number,
 ): Promise<void> {
-  const rangeStr = estimateMin && estimateMax
-    ? ` Your estimate range: $${estimateMin.toLocaleString()}–$${estimateMax.toLocaleString()}.`
-    : '';
   const body =
-    `Hi ${firstName}! Your quote (${quoteNumber}) is confirmed!${rangeStr} ` +
-    `Emma from our team will call you shortly to lock in your free measurement. ` +
-    `Questions? (833) 201-7849`;
+    `Hey ${firstName}! This is Emma from Cabinets of Orlando — saw your cabinet request. ` +
+    `Quick question: are you planning to fully replace all your cabinets, or more of a partial update?`;
+  await sendSms(phone, body);
+}
+
+// 10-min follow-up if customer hasn't replied to the opener
+export async function sendFollowUpSms(
+  firstName: string,
+  phone: string,
+  quoteNumber: string,
+): Promise<void> {
+  const baseUrl = process.env.FRONTEND_URL || 'https://cabinet-quoting-production.up.railway.app';
+  const link = `${baseUrl}/schedule?quote=${quoteNumber}&name=${encodeURIComponent(firstName)}`;
+  const body =
+    `Hey ${firstName}, just following up on your cabinet request! ` +
+    `Happy to answer any questions, or you can grab a time here: ${link}`;
   await sendSms(phone, body);
 }
 

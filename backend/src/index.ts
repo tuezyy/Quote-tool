@@ -3,7 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
 import prisma from './utils/prisma';
-import { sendSchedulingLink } from './services/sms';
+import { sendSchedulingLink, sendFollowUpSms } from './services/sms';
 
 dotenv.config();
 
@@ -123,13 +123,52 @@ async function runFollowUpCron() {
   }
 }
 
+// ─── 10-min customer SMS follow-up cron ──────────────────────────────────────
+// Runs every 5 min. Finds quotes submitted 10–30 min ago where the customer
+// hasn't replied and hasn't gotten a follow-up yet. Sends schedule link nudge.
+async function runCustomerFollowUpCron() {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - 30 * 60 * 1000); // 30 min ago
+  const windowEnd   = new Date(now.getTime() - 10 * 60 * 1000); // 10 min ago
+  try {
+    const quotes = await prisma.quote.findMany({
+      where: {
+        createdAt:        { gte: windowStart, lte: windowEnd },
+        customerRepliedAt: null,
+        followUpSentAt:   null,
+      },
+      include: { customer: true },
+    });
+
+    for (const quote of quotes) {
+      const { customer } = quote;
+      if (!customer?.phone) continue;
+      try {
+        await sendFollowUpSms(customer.firstName, customer.phone, quote.quoteNumber);
+        await prisma.quote.update({
+          where: { id: quote.id },
+          data:  { followUpSentAt: new Date() },
+        });
+        console.log(`[Cron:10min] Follow-up SMS sent → ${quote.quoteNumber}`);
+      } catch (err: any) {
+        console.error(`[Cron:10min] Failed for ${quote.quoteNumber}:`, err.message);
+      }
+    }
+  } catch (err: any) {
+    console.error('[Cron:10min] Error:', err.message);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   if (process.env.NODE_ENV === 'production') {
     console.log('📦 Serving frontend from static files');
   }
-  // Run follow-up cron hourly
+  // Hourly cron: Emma no-answer → schedule link (23-25h window)
   setInterval(runFollowUpCron, 60 * 60 * 1000);
-  setTimeout(runFollowUpCron, 60 * 1000); // also run 1 min after startup
+  setTimeout(runFollowUpCron, 60 * 1000);
+  // 5-min cron: customer opener no-reply → 10-min follow-up nudge
+  setInterval(runCustomerFollowUpCron, 5 * 60 * 1000);
+  setTimeout(runCustomerFollowUpCron, 2 * 60 * 1000); // first run 2 min after startup
 });

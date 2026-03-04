@@ -133,6 +133,16 @@ model Quote {
   reviewSmsSentAt       DateTime? @map("review_sms_sent_at")
   completedAt           DateTime? @map("completed_at")
 
+  // Lead qualification (captured at quote submission)
+  ownsHome         Boolean?  @map("owns_home")
+  replacingAll     Boolean?  @map("replacing_all")     // true=yes, null=not sure
+  customerTimeline String?   @map("customer_timeline")  // '0-3' | '3-6' | 'exploring'
+  isQualified      Boolean   @default(false) @map("is_qualified")
+
+  // Customer SMS engagement
+  customerRepliedAt DateTime? @map("customer_replied_at")
+  followUpSentAt    DateTime? @map("follow_up_sent_at")
+
   // Outbound call tracking
   callAttemptedAt DateTime? @map("call_attempted_at")
   callOutcome     String?   @map("call_outcome") // no_answer | scheduled | declined | voicemail

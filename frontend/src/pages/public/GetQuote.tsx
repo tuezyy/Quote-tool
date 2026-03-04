@@ -232,7 +232,7 @@ function ContactFields({ c, onChange }: { c: ContactForm; onChange: (f: ContactF
 // ═══════════════════════════════════════════════════════════════════════════════
 // BUILD & PRICE PATH
 // ═══════════════════════════════════════════════════════════════════════════════
-type BuildStep = 'photo' | 1 | 2 | 3 | 'style' | 'estimate' | 'planner' | 'contact'
+type BuildStep = 'intro' | 'photo' | 1 | 2 | 3 | 'style' | 'estimate' | 'qualify' | 'planner' | 'contact'
 
 // Which wall inputs to show per layout
 const WALL_INPUTS: Record<string, Array<{ key: keyof WallsState; label: string; min: number; max: number }>> = {
@@ -243,7 +243,7 @@ const WALL_INPUTS: Record<string, Array<{ key: keyof WallsState; label: string; 
 }
 
 function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
-  const [step, setStep]             = useState<BuildStep>('photo')
+  const [step, setStep]             = useState<BuildStep>('intro')
   const [layout, setLayout]         = useState('')
   const [walls, setWalls]           = useState<WallsState>({ a: 0, b: 0, c: 0, island: 0 })
   const [replacing, setReplacing]   = useState<boolean | null>(null)
@@ -265,9 +265,18 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
   const photo1Ref = useRef<HTMLInputElement>(null)
   const photo2Ref = useRef<HTMLInputElement>(null)
 
+  // Lead qualification
+  const [ownsHome, setOwnsHome]               = useState<boolean | null>(null)
+  const [replacingAll, setReplacingAll]       = useState<boolean | null>(null) // true=yes, null=not sure
+  const [customerTimeline, setCustomerTimeline] = useState<'0-3' | '3-6' | 'exploring' | ''>('')
+
   // Smart estimate from API
   const [apiEst, setApiEst]         = useState<{ min: number; max: number; cabinetCount: number; cabinetPrice: number; installFee: number; demoFee: number } | null>(null)
   const [apiEstLoading, setApiEstLoading] = useState(false)
+
+  const isQualified       = ownsHome === true && replacingAll === true && customerTimeline !== 'exploring'
+  const isHardDisqualified = ownsHome === false
+  const canQualify        = ownsHome !== null && replacingAll !== null && customerTimeline !== ''
 
   const totalLF    = wallsToLF(layout, walls)
   const canStep1   = !!layout && totalLF > 0
@@ -397,6 +406,10 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
         estimateMin: est.min,
         estimateMax: est.max,
         items: items.length > 0 ? items : [],
+        ownsHome,
+        replacingAll,
+        customerTimeline,
+        isQualified,
       })
       onSuccess({
         ...contact,
@@ -406,6 +419,8 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
         collection,
         style,
         installOnly,
+        isQualified,
+        isHardDisqualified,
         quoteNumber: res.data.quoteNumber,
       })
     } catch { setError('Something went wrong. Please call (833) 201-7849.') }
@@ -419,6 +434,44 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
 
   return (
     <>
+      {/* ── Intro / price anchor step ──────────────────────────────────────────── */}
+      {step === 'intro' && (
+        <div className="animate-fade-in text-center">
+          <div className="w-16 h-16 bg-wood-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-wood-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+          </div>
+          <h2 className="text-2xl font-black text-stone-900 mb-2">See If Your Kitchen Qualifies</h2>
+          <p className="text-stone-500 text-sm mb-6 max-w-sm mx-auto">
+            Full cabinet replacement projects in Orlando typically start between{' '}
+            <span className="font-bold text-stone-800">$11,000–$18,000 installed</span> — cabinets, labor, and haul-away included.
+          </p>
+
+          <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5 mb-6 text-left space-y-3 text-sm">
+            {[
+              { icon: '📐', text: 'Free in-home measurement — no obligation' },
+              { icon: '🔨', text: 'Licensed crew handles demo, delivery, and installation' },
+              { icon: '💰', text: 'Exact price locked in before any work begins' },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="text-lg">{item.icon}</span>
+                <span className="text-stone-700">{item.text}</span>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={() => setStep('photo')}
+            className="w-full bg-wood-600 hover:bg-wood-700 text-white font-bold py-4 rounded-xl text-base transition-colors mb-3">
+            Check My Kitchen →
+          </button>
+          <button onClick={() => setStep(1)}
+            className="text-stone-400 hover:text-stone-600 text-sm underline underline-offset-2">
+            Skip — enter details manually
+          </button>
+        </div>
+      )}
+
       {/* ── Photo step ─────────────────────────────────────────────────────────── */}
       {step === 'photo' && (
         <div className="animate-fade-in">
@@ -789,9 +842,9 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
                   </svg>
                   Design My Layout →
                 </button>
-                <button onClick={() => setStep('contact')}
+                <button onClick={() => setStep('qualify')}
                   className="flex-1 border-2 border-wood-500 text-wood-700 hover:bg-wood-50 font-bold py-3.5 rounded-xl text-sm transition-colors">
-                  Skip to Contact →
+                  Get My Quote →
                 </button>
               </div>
               <a href="tel:+18332017849"
@@ -834,13 +887,97 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
           />
 
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
-            <button onClick={() => setStep('contact')}
+            <button onClick={() => setStep('qualify')}
               className="flex-1 bg-wood-600 hover:bg-wood-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors">
-              Looks good — Enter My Details →
+              Looks good — Get My Quote →
             </button>
-            <button onClick={() => setStep('contact')}
+            <button onClick={() => setStep('qualify')}
               className="flex-1 border border-stone-300 text-stone-600 hover:border-stone-400 font-medium py-3.5 rounded-xl text-sm transition-colors">
-              Skip layout — go to contact
+              Skip layout — Continue →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Qualify step ───────────────────────────────────────────────────────── */}
+      {step === 'qualify' && (
+        <div className="animate-fade-in">
+          <h2 className="text-xl font-bold text-stone-900 mb-1">Almost there — two quick questions</h2>
+          <p className="text-stone-400 text-sm mb-6">Helps us prepare the right team for your project.</p>
+
+          {/* Q1: Replacing all cabinets? */}
+          <div className="mb-6">
+            <p className="text-sm font-semibold text-stone-700 mb-3">Are you replacing all your cabinets?</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Yes — full replacement', value: true },
+                { label: 'Not sure / partial update', value: null },
+              ].map(opt => (
+                <button key={String(opt.label)} onClick={() => setReplacingAll(opt.value)}
+                  className={`border-2 rounded-xl py-3 px-4 text-sm font-medium transition-all text-left ${
+                    replacingAll === opt.value && opt.value !== null
+                      ? 'border-wood-600 bg-wood-50 text-wood-800'
+                      : replacingAll === null && opt.value === null && replacingAll !== true && customerTimeline === '' && ownsHome === null ? 'border-stone-200 text-stone-600'
+                      : (replacingAll === null && opt.value === null) ? 'border-wood-600 bg-wood-50 text-wood-800'
+                      : 'border-stone-200 text-stone-600 hover:border-stone-400'
+                  }`}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Q2: Timeline */}
+          <div className="mb-6">
+            <p className="text-sm font-semibold text-stone-700 mb-3">When are you hoping to start?</p>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Within 3 months', value: '0-3' as const },
+                { label: '3–6 months', value: '3-6' as const },
+                { label: 'Just exploring', value: 'exploring' as const },
+              ].map(opt => (
+                <button key={opt.value} onClick={() => setCustomerTimeline(opt.value)}
+                  className={`border-2 rounded-xl py-3 px-3 text-sm font-medium transition-all text-center ${
+                    customerTimeline === opt.value
+                      ? 'border-wood-600 bg-wood-50 text-wood-800'
+                      : 'border-stone-200 text-stone-600 hover:border-stone-400'
+                  }`}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Q3: Own home? */}
+          <div className="mb-6">
+            <p className="text-sm font-semibold text-stone-700 mb-3">Do you own the home?</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Yes, I own it', value: true },
+                { label: 'No / renting', value: false },
+              ].map(opt => (
+                <button key={String(opt.value)} onClick={() => setOwnsHome(opt.value)}
+                  className={`border-2 rounded-xl py-3 px-4 text-sm font-medium transition-all text-left ${
+                    ownsHome === opt.value
+                      ? 'border-wood-600 bg-wood-50 text-wood-800'
+                      : 'border-stone-200 text-stone-600 hover:border-stone-400'
+                  }`}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {ownsHome === false && (
+              <p className="text-xs text-stone-500 mt-3 bg-stone-50 border border-stone-200 rounded-xl p-3">
+                We work directly with homeowners for measurements and approvals — happy to save your info and follow up when you're ready.
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-between items-center">
+            <button onClick={() => setStep('estimate')} className="text-stone-500 hover:text-stone-700 text-sm font-medium">← Back</button>
+            <button onClick={() => setStep('contact')} disabled={!canQualify}
+              className="bg-wood-600 hover:bg-wood-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-semibold px-8 py-2.5 rounded-xl transition-colors">
+              Continue →
             </button>
           </div>
         </div>
@@ -860,8 +997,14 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
             </button>
           </div>
 
-          <h2 className="text-xl font-bold text-stone-900 mb-1">Where should we send your exact quote?</h2>
-          <p className="text-stone-500 text-sm mb-5">Our team reviews your selections and confirms final pricing within 2 hours.</p>
+          <h2 className="text-xl font-bold text-stone-900 mb-1">
+            {isQualified ? 'Lock in your free measurement' : 'Submit your project details'}
+          </h2>
+          <p className="text-stone-500 text-sm mb-5">
+            {isQualified
+              ? 'Emma will call you to schedule a free in-home measurement — usually within 5 minutes.'
+              : 'We\'ll review your project and reach out to discuss next steps.'}
+          </p>
 
           <ContactFields c={contact} onChange={setContact}/>
 
@@ -887,7 +1030,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
           {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4">{error}</div>}
 
           <div className="flex justify-between items-center">
-            <button onClick={() => setStep('estimate')} className="text-stone-500 hover:text-stone-700 font-medium text-sm">← Back</button>
+            <button onClick={() => setStep('qualify')} className="text-stone-500 hover:text-stone-700 font-medium text-sm">← Back</button>
             <button onClick={submit} disabled={!contactValid || !timeline || submitting || (!displayEst && !estimate)}
               className="bg-wood-600 hover:bg-wood-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-bold px-8 py-3 rounded-xl transition-colors flex items-center gap-2">
               {submitting ? <><Spinner/>Submitting...</> : 'Submit My Quote Request'}
@@ -1059,26 +1202,46 @@ export default function GetQuote() {
             </div>
           )}
 
-          {/* What happens next */}
-          <div className="bg-white border border-stone-200 rounded-2xl p-5 mb-6">
-            <h3 className="font-bold text-stone-900 mb-4 text-sm uppercase tracking-wide">What Happens Next</h3>
-            <div className="space-y-4">
-              {[
-                { icon: '📞', title: 'Emma calls you shortly', desc: 'Our assistant will call to schedule your free measurement — usually within 5 minutes.' },
-                { icon: '📐', title: 'Free in-home measurement', desc: 'A team member visits, takes exact measurements, and walks through your project.' },
-                { icon: '💰', title: 'Exact quote confirmed', desc: 'We lock in the final number — no surprises. Most projects land near the middle of your estimate.' },
-                { icon: '🔨', title: 'Installation in 2–3 days', desc: 'Our licensed crew handles everything: demo, delivery, and full installation.' },
-              ].map((step, i) => (
-                <div key={i} className="flex gap-3 items-start">
-                  <div className="text-xl flex-shrink-0 mt-0.5">{step.icon}</div>
-                  <div>
-                    <div className="font-semibold text-stone-900 text-sm">{step.title}</div>
-                    <div className="text-stone-500 text-xs mt-0.5 leading-relaxed">{step.desc}</div>
-                  </div>
-                </div>
-              ))}
+          {/* What happens next — varies by qualification */}
+          {submitData?.isHardDisqualified ? (
+            <div className="bg-white border border-stone-200 rounded-2xl p-5 mb-6">
+              <h3 className="font-bold text-stone-900 mb-3 text-sm uppercase tracking-wide">What Happens Next</h3>
+              <p className="text-stone-600 text-sm leading-relaxed">
+                We'll review your project details and reach out to discuss options. If you're working with a homeowner, feel free to have them submit a request directly — we'll get them a measurement appointment right away.
+              </p>
+              <p className="text-stone-500 text-sm mt-3">Questions? Call us at <a href="tel:+18332017849" className="font-semibold text-wood-700">(833) 201-7849</a></p>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white border border-stone-200 rounded-2xl p-5 mb-6">
+              <h3 className="font-bold text-stone-900 mb-4 text-sm uppercase tracking-wide">What Happens Next</h3>
+              <div className="space-y-4">
+                {[
+                  { icon: '📞', title: 'Emma calls you shortly', desc: 'Our assistant will call to schedule your free measurement — usually within 5 minutes.' },
+                  { icon: '📐', title: 'Free in-home measurement', desc: 'A team member visits, takes exact measurements, and walks through your project.' },
+                  { icon: '💰', title: 'Exact quote confirmed', desc: 'We lock in the final number — no surprises. Most projects land near the middle of your estimate.' },
+                  { icon: '🔨', title: 'Installation in 2–3 days', desc: 'Our licensed crew handles everything: demo, delivery, and full installation.' },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-3 items-start">
+                    <div className="text-xl flex-shrink-0 mt-0.5">{item.icon}</div>
+                    <div>
+                      <div className="font-semibold text-stone-900 text-sm">{item.title}</div>
+                      <div className="text-stone-500 text-xs mt-0.5 leading-relaxed">{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {submitData?.isQualified && submitData?.quoteNumber && (
+                <div className="mt-5 pt-4 border-t border-stone-100">
+                  <p className="text-xs text-stone-500 mb-2">Can't wait for Emma's call? Pick a time yourself:</p>
+                  <a
+                    href={`/schedule?quote=${submitData.quoteNumber}&name=${encodeURIComponent(submitData.firstName)}`}
+                    className="block w-full text-center bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold py-2.5 rounded-xl text-sm transition-colors">
+                    Schedule My Measurement →
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
 
           <p className="text-center text-stone-400 text-xs mb-6">
             Confirmation text sent to <strong>{submitData?.phone}</strong>

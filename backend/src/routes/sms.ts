@@ -17,7 +17,7 @@
 
 import { Router } from 'express';
 import prisma from '../utils/prisma';
-import { sendSms, sendInstallerNotification } from '../services/sms';
+import { sendSms, sendInstallerNotification, sendSchedulingLink } from '../services/sms';
 
 const router = Router();
 
@@ -35,14 +35,44 @@ router.post('/inbound', async (req: any, res: any) => {
     if (!from || !msgBody) return;
 
     const normalized = msgBody.trim().toUpperCase();
-    const isYes = normalized === 'YES' || normalized.startsWith('YES');
-    const isNo  = normalized === 'NO'  || normalized.startsWith('NO');
+    const isYes = /^(YES|YEAH|YEP|YUP|SURE|OK|OKAY|DEFINITELY|ABSOLUTELY)/.test(normalized);
+    const isNo  = /^(NO|NOPE|NOT|CANCEL)/.test(normalized);
+
+    // ── Customer reply check ──────────────────────────────────────────────────
+    // Check if `from` is a customer number before checking installer routing
+    const customerQuote = await prisma.quote.findFirst({
+      where: {
+        customer: { phone: from },
+        customerRepliedAt: null,
+      },
+      include: { customer: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (customerQuote) {
+      // Record the reply regardless of content
+      await prisma.quote.update({
+        where: { id: customerQuote.id },
+        data: { customerRepliedAt: new Date() },
+      });
+
+      if (isYes) {
+        // Send them the schedule link
+        await sendSchedulingLink(from, customerQuote.customer.firstName, customerQuote.quoteNumber)
+          .catch(e => console.error('[SMS inbound] Schedule link failed:', e.message));
+        console.log(`[SMS inbound] Customer replied YES → schedule link sent for ${customerQuote.quoteNumber}`);
+      } else {
+        console.log(`[SMS inbound] Customer replied (not affirmative) for ${customerQuote.quoteNumber}: "${msgBody}"`);
+      }
+      return; // handled as customer reply — don't fall through to installer logic
+    }
 
     if (!isYes && !isNo) {
       console.log(`[SMS inbound] Unrecognised reply from ${from}: "${msgBody}"`);
       return;
     }
 
+    // ── Installer reply check ─────────────────────────────────────────────────
     // Find the most recent DRAFT quote that was sent to this installer number
     const quote = await prisma.quote.findFirst({
       where: {

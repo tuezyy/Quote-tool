@@ -10,7 +10,7 @@
     "build": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix backend && npm run build --prefix backend",
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend && npm run build",
-    "start": "node backend/dist/index.js",
+    "start": "cd backend && npx prisma db push --skip-generate --accept-data-loss && cd .. && node backend/dist/index.js",
     "postinstall": "npm install --legacy-peer-deps --prefix frontend && npm install --prefix backend",
     "prisma:generate": "cd backend && npm run prisma:generate",
     "prisma:migrate": "cd backend && npm run prisma:migrate",
