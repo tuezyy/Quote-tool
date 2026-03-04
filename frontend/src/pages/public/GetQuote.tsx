@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
-import KitchenPlannerCanvas, { PlacedCabinet } from '../../components/public/KitchenPlannerCanvas'
+// KitchenPlannerCanvas removed — floor plan feature paused for rebuild
 
 // ─── Pricing model ─────────────────────────────────────────────────────────────
 
@@ -127,9 +127,11 @@ const EMPTY: ContactForm = { firstName: '', lastName: '', email: '', phone: '', 
 interface VisionResult {
   layout: string
   walls: WallsState
+  cabinetCount: number
   replacing: boolean
   confidence: 'high' | 'medium' | 'low'
   notes: string
+  photoCount?: number
 }
 
 // ─── Layout icons (bird's-eye view) ────────────────────────────────────────────
@@ -249,7 +251,7 @@ function ContactFields({ c, onChange }: { c: ContactForm; onChange: (f: ContactF
 // ═══════════════════════════════════════════════════════════════════════════════
 // BUILD & PRICE PATH
 // ═══════════════════════════════════════════════════════════════════════════════
-type BuildStep = 'intro' | 'photo' | 1 | 2 | 3 | 'style' | 'estimate' | 'qualify' | 'planner' | 'contact'
+type BuildStep = 'intro' | 'photo' | 1 | 2 | 3 | 'style' | 'estimate' | 'qualify' | 'contact'
 
 // Which wall inputs to show per layout
 const WALL_INPUTS: Record<string, Array<{ key: keyof WallsState; label: string; min: number; max: number; hint?: string }>> = {
@@ -273,8 +275,6 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
   const [notes, setNotes]           = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]           = useState('')
-  const [placedCabinets, setPlacedCabinets] = useState<PlacedCabinet[]>([])
-
   // Vision state
   const [visionLoading, setVisionLoading] = useState(false)
   const [visionResult, setVisionResult]   = useState<VisionResult | null>(null)
@@ -285,6 +285,8 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
 
   // Tracks whether wall dims were auto-filled from vision (shows verify notice on step 1)
   const [visionFilled, setVisionFilled] = useState(false)
+  // Cabinet count from photo — passed to smart-estimate as override
+  const [visionCabinetCount, setVisionCabinetCount] = useState<number | null>(null)
 
   // Lead qualification
   const [ownsHome, setOwnsHome]               = useState<boolean | null>(null)
@@ -292,7 +294,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
   const [customerTimeline, setCustomerTimeline] = useState<'0-3' | '3-6' | 'exploring' | ''>('')
 
   // Smart estimate from API
-  const [apiEst, setApiEst]         = useState<{ min: number; max: number; cabinetCount: number; cabinetPrice: number; installFee: number; demoFee: number } | null>(null)
+  const [apiEst, setApiEst]         = useState<{ min: number; max: number; cabinetCount: number; countFromPhoto: boolean; cabinetPrice: number; installFee: number; demoFee: number } | null>(null)
   const [apiEstLoading, setApiEstLoading] = useState(false)
 
   const isQualified       = ownsHome === true && replacingAll === true && customerTimeline !== 'exploring'
@@ -320,6 +322,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
         collection,
         replacing: replacing ? 'true' : 'false',
         walls: JSON.stringify(walls),
+        ...(visionCabinetCount ? { cabinetCountOverride: visionCabinetCount } : {}),
       }
     })
       .then(r => setApiEst(r.data))
@@ -391,6 +394,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
     setWalls(result.walls)
     if (result.replacing) setReplacing(true)
     setVisionFilled(true)
+    if (result.cabinetCount > 0) setVisionCabinetCount(result.cabinetCount)
     setStep(1) // always land on wall dimensions so user can verify
   }
 
@@ -413,12 +417,6 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
     setSubmitting(true); setError('')
     try {
       const est = displayEst ?? estimate!
-      const items = placedCabinets.map(c => ({
-        itemCode: c.typeCode,
-        qty: 1,
-        description: `${c.typeCode} — ${c.widthIn}" cabinet`,
-        customerPrice: 0, // priced at collection level
-      }))
       const res = await axios.post('/api/public/quote-request', {
         ...contact, timeline, notes,
         kitchenSize: `${layout}_${lfToSize(layout, totalLF)}`,
@@ -427,7 +425,7 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
         quoteType: 'estimate',
         estimateMin: est.min,
         estimateMax: est.max,
-        items: items.length > 0 ? items : [],
+        items: [],
         ownsHome,
         replacingAll,
         customerTimeline,
@@ -844,7 +842,12 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
                   <div className="font-semibold text-stone-800 mb-3 text-xs uppercase tracking-wide">What's included</div>
                   <div className="space-y-2 text-stone-600">
                     <div className="flex justify-between">
-                      <span>{apiEst.cabinetCount} cabinets ({collection})</span>
+                      <span>
+                        {apiEst.cabinetCount} cabinets ({collection})
+                        {apiEst.countFromPhoto && (
+                          <span className="ml-1.5 text-xs text-amber-600 font-medium">· counted from photo</span>
+                        )}
+                      </span>
                       <span className="font-semibold text-stone-800">${apiEst.cabinetPrice.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
@@ -862,6 +865,11 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
                       <span>included</span>
                     </div>
                   </div>
+                  {apiEst.countFromPhoto && (
+                    <p className="text-xs text-stone-400 mt-3 leading-relaxed">
+                      Cabinet count estimated from your photo. Exact count confirmed during your free in-home measurement — pricing adjusts accordingly.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -875,15 +883,8 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 mb-3">
-                <button onClick={() => setStep('planner')}
-                  className="flex-1 bg-wood-600 hover:bg-wood-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
-                  </svg>
-                  Design My Layout →
-                </button>
                 <button onClick={() => setStep('qualify')}
-                  className="flex-1 border-2 border-wood-500 text-wood-700 hover:bg-wood-50 font-bold py-3.5 rounded-xl text-sm transition-colors">
+                  className="flex-1 bg-wood-600 hover:bg-wood-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors">
                   Get My Quote →
                 </button>
               </div>
@@ -904,41 +905,6 @@ function BuilderPath({ onSuccess }: { onSuccess: (d: any) => void }) {
       )}
 
       {/* ── Planner step ───────────────────────────────────────────────────────── */}
-      {step === 'planner' && displayEst && (
-        <div className="animate-fade-in">
-          <div className="flex items-center gap-2 mb-4">
-            <button onClick={() => setStep('estimate')} className="text-stone-500 hover:text-stone-700 text-sm font-medium">← Back</button>
-            <span className="text-stone-300">·</span>
-            <span className="text-sm font-semibold text-wood-600">Floor Plan</span>
-          </div>
-          <h2 className="text-xl font-bold text-stone-900 mb-1">Design your cabinet layout</h2>
-          <p className="text-stone-400 text-sm mb-5">
-            Cabinets pre-filled based on your wall dimensions. Click palette items to add, drag to rearrange, × to remove.
-          </p>
-
-          <KitchenPlannerCanvas
-            layout={layout}
-            walls={walls}
-            collection={collection}
-            placedCabinets={placedCabinets}
-            onCabinetsChange={setPlacedCabinets}
-            estimate={displayEst}
-            replacing={replacing ?? false}
-          />
-
-          <div className="mt-6 flex flex-col sm:flex-row gap-3">
-            <button onClick={() => setStep('qualify')}
-              className="flex-1 bg-wood-600 hover:bg-wood-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors">
-              Looks good — Get My Quote →
-            </button>
-            <button onClick={() => setStep('qualify')}
-              className="flex-1 border border-stone-300 text-stone-600 hover:border-stone-400 font-medium py-3.5 rounded-xl text-sm transition-colors">
-              Skip layout — Continue →
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── Qualify step ───────────────────────────────────────────────────────── */}
       {step === 'qualify' && (
         <div className="animate-fade-in">

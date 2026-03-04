@@ -17,6 +17,14 @@ LAYOUT TYPES — pick the best match:
 - u_shape: THREE walls — two parallel runs connected by a third wall at one end
 - island: l_shape or u_shape PLUS a freestanding island or peninsula in the center
 
+HOW TO COUNT CABINETS — count physical cabinet boxes, not doors or drawer faces:
+- A base cabinet = one box. A 36" sink base with two doors = 1 cabinet. A 30" base with a drawer on top and door below = 1 cabinet.
+- A wall/upper cabinet = one box. Two uppers side by side = 2 cabinets.
+- DO NOT count: refrigerator, range/oven, dishwasher, range hood, microwave, open shelves.
+- DO NOT count drawer fronts as separate cabinets — they are part of the cabinet box.
+- Count base cabinets and wall cabinets separately, then add together for total.
+- For galley kitchens, count ALL cabinets on BOTH walls combined.
+
 HOW TO MEASURE WALL LENGTH — this is the most critical part. DO NOT over-estimate:
 1. Count visible cabinet UNITS on each wall. A base cabinet with 2 drawers on top + a door below = ONE unit. Do not count drawer fronts as separate cabinets.
 2. Estimate width per unit: most base cabinets are 24–30" wide. Sink bases are usually 30–36". Narrow fillers are 12–18".
@@ -36,6 +44,7 @@ Return:
 {
   "layout": "straight" | "galley" | "l_shape" | "u_shape" | "island",
   "walls": { "a": <ft>, "b": <ft>, "c": <ft>, "island": <ft> },
+  "cabinetCount": <total number of cabinet boxes visible>,
   "replacing": true | false,
   "confidence": "high" | "medium" | "low",
   "notes": "<one brief sentence about what you see>"
@@ -45,6 +54,7 @@ Return:
 - walls.b: second wall (0 if straight; the opposite parallel wall for galley; the adjacent wall for l_shape/u_shape)
 - walls.c: third wall in feet (0 unless u_shape or island with 3 perimeter walls)
 - walls.island: freestanding island length (0 unless island layout)
+- cabinetCount: total cabinet boxes you can see and count (base + wall combined, exclude appliances)
 - replacing: true if existing cabinets are visible in the photo
 - confidence: high if layout and dimensions are clearly visible, medium if partially visible, low if unclear or small photo`;
 
@@ -58,6 +68,7 @@ Return:
 {
   "layout": "straight" | "galley" | "l_shape" | "u_shape" | "island",
   "walls": { "a": <ft>, "b": <ft>, "c": <ft>, "island": <ft> },
+  "cabinetCount": <total unique cabinet boxes across the whole kitchen>,
   "replacing": true | false,
   "confidence": "high" | "medium" | "low",
   "notes": "<one brief sentence noting both angles were used>"
@@ -65,6 +76,7 @@ Return:
 
 - Each wall appears ONCE — use whichever photo shows it most clearly; if both show the same wall, average the two estimates
 - walls.a: primary/longest wall; walls.b: second wall (parallel opposite for galley; adjacent for l_shape); walls.c: third wall only for u_shape/island
+- cabinetCount: total UNIQUE cabinet boxes across the entire kitchen combining both photos — count each physical cabinet ONCE even if it appears in both photos; exclude appliances
 - replacing: true if existing cabinets are visible in EITHER photo
 - confidence: high if both photos together give a clear full picture, medium if partial, low if unclear`;
 
@@ -128,6 +140,7 @@ router.post('/analyze-kitchen', upload.array('images', 2), async (req: any, res:
     if (typeof result.replacing !== 'boolean') result.replacing = false;
     if (!['high', 'medium', 'low'].includes(result.confidence)) result.confidence = 'medium';
     if (typeof result.notes !== 'string') result.notes = '';
+    result.cabinetCount = Math.max(0, Math.min(50, Math.round(Number(result.cabinetCount) || 0)));
 
     res.json({ ...result, photoCount: files.length });
   } catch (err: any) {

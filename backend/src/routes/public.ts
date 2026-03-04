@@ -573,7 +573,7 @@ function lfToSize(layout: string, lf: number): string {
 // ─────────────────────────────────────────────
 router.get('/smart-estimate', async (req: any, res: any) => {
   try {
-    const { layout, size, collection, replacing, walls: wallsParam } = req.query;
+    const { layout, size, collection, replacing, walls: wallsParam, cabinetCountOverride } = req.query;
 
     if (!layout) {
       return res.status(400).json({ error: 'layout is required' });
@@ -679,6 +679,11 @@ router.get('/smart-estimate', async (req: any, res: any) => {
       cabinetCount += item.qty;
     }
 
+    // If caller provided a photo-counted cabinet count, use it for display (pricing still from BOM MSRP)
+    const parsedOverride = cabinetCountOverride ? parseInt(cabinetCountOverride as string, 10) : NaN;
+    const displayCabinetCount = (!isNaN(parsedOverride) && parsedOverride > 0) ? parsedOverride : cabinetCount;
+    const countFromPhoto = !isNaN(parsedOverride) && parsedOverride > 0;
+
     // Customer price = MSRP × 0.8 markup
     const cabinetPrice = Math.round(totalMsrp * CUSTOMER_MARKUP);
 
@@ -696,7 +701,8 @@ router.get('/smart-estimate', async (req: any, res: any) => {
       min: Math.round(total * 0.92 / 100) * 100,
       max: Math.round(total * 1.10 / 100) * 100,
       base: Math.round(total / 100) * 100,
-      cabinetCount,
+      cabinetCount: displayCabinetCount,
+      countFromPhoto,
       cabinetMsrp: Math.round(totalMsrp),
       cabinetPrice,
       installFee,
